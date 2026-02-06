@@ -590,7 +590,13 @@ async def create_announcement_api(data: AnnouncementRequest, username: str = Dep
 @app.get("/api/admin/announcements")
 async def list_announcements_api(username: str = Depends(verify_token)):
     """列出所有公告"""
-    return await list_announcements()
+    try:
+        result = await list_announcements()
+        logger.info(f"📋 获取公告列表成功 | 用户: {username} | 数量: {len(result)}")
+        return result
+    except Exception as e:
+        logger.error(f"❌ 获取公告列表失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.delete("/api/admin/announcement/{announcement_id}")

@@ -61,11 +61,19 @@ class Announcement(Base):
     __tablename__ = "announcements"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    announcement_hash = Column(String(32), unique=True, index=True, nullable=False)  # MD5 哈希值
     title = Column(String, nullable=False)
     content = Column(String, nullable=True)  # 可为空（当 url 存在时）
     url = Column(String, nullable=True)      # 可选的外链
     created_at = Column(DateTime, default=datetime.utcnow)
     is_active = Column(Boolean, default=True)
+
+
+def generate_announcement_hash(title: str, content: str, url: str) -> str:
+    """根据标题+内容+URL+时间戳生成唯一哈希值"""
+    import time
+    data = f"{title}|{content}|{url}|{time.time()}"
+    return hashlib.md5(data.encode()).hexdigest()
 
 
 class AdminUser(Base):
@@ -207,7 +215,7 @@ async def get_latest_announcement() -> Optional[Dict[str, Any]]:
         
         if announcement:
             return {
-                "announcementId": announcement.id,
+                "announcementId": announcement.announcement_hash,  # 使用哈希值
                 "title": announcement.title,
                 "content": announcement.content or "",
                 "url": announcement.url or ""
@@ -219,7 +227,11 @@ async def create_announcement(title: str, content: str = "", url: str = "") -> D
     """创建新公告"""
     async with async_session() as session:
         try:
+            # 生成唯一哈希值
+            announcement_hash = generate_announcement_hash(title, content or "", url or "")
+            
             new_announcement = Announcement(
+                announcement_hash=announcement_hash,
                 title=title,
                 content=content if content else None,
                 url=url if url else None,
@@ -229,8 +241,11 @@ async def create_announcement(title: str, content: str = "", url: str = "") -> D
             await session.commit()
             await session.refresh(new_announcement)
             
+            logger.info(f"📢 创建公告成功 | ID: {new_announcement.id} | Hash: {announcement_hash[:8]}...")
+            
             return {
                 "id": new_announcement.id,
+                "hash": new_announcement.announcement_hash,
                 "title": new_announcement.title,
                 "content": new_announcement.content or "",
                 "url": new_announcement.url or "",
@@ -238,6 +253,7 @@ async def create_announcement(title: str, content: str = "", url: str = "") -> D
             }
         except Exception as e:
             await session.rollback()
+            logger.error(f"创建公告失败: {e}")
             raise e
 
 
@@ -253,6 +269,7 @@ async def list_announcements(limit: int = 20) -> List[Dict[str, Any]]:
         return [
             {
                 "id": a.id,
+                "hash": getattr(a, 'announcement_hash', ''),  # 兼容旧数据
                 "title": a.title,
                 "content": a.content or "",
                 "url": a.url or "",

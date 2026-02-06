@@ -26,6 +26,7 @@ RUN pip install --no-cache-dir -r requirements_api.txt
 COPY announcement_api.py .
 COPY telemetry_db.py .
 COPY migrate_telemetry_db.py .
+COPY migrate_announcement_hash.py .
 COPY reset_admin.py .
 COPY frontend/ ./frontend/
 

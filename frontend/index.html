@@ -827,9 +827,13 @@
         // Announcement Functions
         async function loadAnnouncements() {
             try {
+                console.log('[DEBUG] 开始加载公告列表...');
                 const announcements = await apiRequest('/api/admin/announcements');
+                console.log('[DEBUG] 公告列表响应:', announcements);
+                console.log('[DEBUG] 类型:', typeof announcements, '是数组:', Array.isArray(announcements));
                 renderAnnouncements(announcements);
             } catch (error) {
+                console.error('[ERROR] 加载公告失败:', error);
                 showToast(error.message, 'error');
             }
         }
@@ -880,16 +884,24 @@
 
         async function createAnnouncement(title, content, url) {
             try {
-                await apiRequest('/api/admin/announcement', {
+                console.log('[DEBUG] 创建公告...', { title, content, url });
+                const result = await apiRequest('/api/admin/announcement', {
                     method: 'POST',
                     body: JSON.stringify({ title, content, url })
                 });
+                console.log('[DEBUG] 创建公告成功:', result);
                 showToast('公告发布成功', 'success');
-                loadAnnouncements();
+                
+                // 刷新公告列表
+                console.log('[DEBUG] 刷新公告列表...');
+                await loadAnnouncements();
+                console.log('[DEBUG] 公告列表刷新完成');
+                
                 document.getElementById('newTitle').value = '';
                 document.getElementById('newContent').value = '';
                 document.getElementById('newUrl').value = '';
             } catch (error) {
+                console.error('[ERROR] 创建公告失败:', error);
                 showToast(error.message, 'error');
             }
         }
