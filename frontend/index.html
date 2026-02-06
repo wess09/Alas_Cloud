@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alas 公告管理</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0a0a0f;
+            --bg-elevated: #12121a;
+            --bg-card: #1a1a24;
+            --bg-input: #0d0d14;
+            --bg-hover: #252532;
+            
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+            --accent-glow: rgba(99, 102, 241, 0.4);
+            
+            --text-primary: #f4f4f5;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            
+            --success: #22c55e;
+            --success-bg: rgba(34, 197, 94, 0.1);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.1);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.1);
+            
+            --border: rgba(255, 255, 255, 0.06);
+            --border-focus: rgba(99, 102, 241, 0.5);
+            
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --shadow-glow: 0 0 40px var(--accent-glow);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent),
+                radial-gradient(ellipse 60% 40% at 100% 100%, rgba(139, 92, 246, 0.1), transparent);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            padding: 1.5rem 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--accent-gradient);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .logo-text h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-text span {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        /* Card Component */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-gradient);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        textarea.form-input {
+            min-height: 140px;
+            resize: vertical;
+        }
+
+        /* Segmented Control */
+        .segmented-control {
+            display: inline-flex;
+            background: var(--bg-input);
+            border-radius: var(--radius-md);
+            padding: 4px;
+            gap: 4px;
+            margin-bottom: 1.25rem;
+        }
+
+        .segment {
+            padding: 0.625rem 1.25rem;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .segment:hover {
+            color: var(--text-primary);
+        }
+
+        .segment.active {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px var(--accent-glow);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-ghost:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: transparent;
+        }
+
+        .btn-danger {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border-radius: var(--radius-sm);
+        }
+
+        /* Announcement List */
+        .announcement-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .announcement-item {
+            background: var(--bg-elevated);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .announcement-item:hover {
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
+        }
+
+        .announcement-item.inactive {
+            opacity: 0.5;
+        }
+
+        .announcement-content {
+            min-width: 0;
+        }
+
+        .announcement-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .announcement-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.625rem;
+            border-radius: 100px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .badge-active {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .badge-inactive {
+            background: rgba(113, 113, 122, 0.2);
+            color: var(--text-muted);
+        }
+
+        .badge-url {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        .announcement-preview {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .announcement-meta {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.75rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .announcement-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-start;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: var(--bg-elevated);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .empty-state h3 {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state p {
+            font-size: 0.9rem;
+        }
+
+        /* Login View */
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-logo {
+            width: 72px;
+            height: 72px;
+            background: var(--accent-gradient);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 1.5rem;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .login-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .login-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 2rem;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            width: 100%;
+            max-width: 420px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-md);
+        }
+
+        .modal-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 1000;
+        }
+
+        .toast {
+            padding: 1rem 1.25rem;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: var(--shadow-md);
+            animation: toast-in 0.3s ease;
+            max-width: 360px;
+        }
+
+        .toast.success {
+            background: var(--success);
+            color: white;
+        }
+
+        .toast.error {
+            background: var(--danger);
+            color: white;
+        }
+
+        .toast.info {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        @keyframes toast-in {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Utilities */
+        .hidden {
+            display: none !important;
+        }
+
+        .flex-1 {
+            flex: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .announcement-item {
+                grid-template-columns: 1fr;
+            }
+
+            .announcement-actions {
+                justify-content: flex-end;
+            }
+
+            .modal-content {
+                margin: 1rem;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-base);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-hover);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Login View -->
+    <div id="loginView" class="login-wrapper">
+        <div class="login-card card">
+            <div class="login-logo">📢</div>
+            <h1 class="login-title">Alas 管理后台</h1>
+            <p class="login-subtitle">登录以管理公告系统</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">用户名</label>
+                    <input type="text" class="form-input" id="username" value="admin" autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">密码</label>
+                    <input type="password" class="form-input" id="password" placeholder="输入管理密码" autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+                    登录
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main View -->
+    <div id="mainView" class="container hidden">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">📢</div>
+                <div class="logo-text">
+                    <h1>公告管理</h1>
+                    <span>Alas Announcement System</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-ghost btn-sm" onclick="showPasswordModal()">
+                    🔑 修改密码
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="logout()">
+                    退出
+                </button>
+            </div>
+        </header>
+
+        <!-- Create Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">✏️</div>
+                <span class="card-title">发布新公告</span>
+            </div>
+            <form id="createForm">
+                <div class="form-group">
+                    <label class="form-label">公告标题</label>
+                    <input type="text" class="form-input" id="newTitle" placeholder="输入公告标题" required>
+                </div>
+                
+                <div class="segmented-control">
+                    <button type="button" class="segment active" data-type="content">📝 纯文本</button>
+                    <button type="button" class="segment" data-type="url">🔗 网页链接</button>
+                </div>
+                
+                <div id="contentInput" class="form-group">
+                    <label class="form-label">公告内容</label>
+                    <textarea class="form-input" id="newContent" placeholder="输入公告详细内容..."></textarea>
+                </div>
+                
+                <div id="urlInput" class="form-group hidden">
+                    <label class="form-label">网页链接</label>
+                    <input type="url" class="form-input" id="newUrl" placeholder="https://example.com/announcement">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    🚀 发布公告
+                </button>
+            </form>
+        </div>
+
+        <!-- List Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">📋</div>
+                <span class="card-title">公告历史</span>
+            </div>
+            <div id="announcementList" class="announcement-list">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div id="passwordModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">🔑 修改密码</h2>
+            </div>
+            <form id="passwordForm">
+                <div class="form-group">
+                    <label class="form-label">当前密码</label>
+                    <input type="password" class="form-input" id="oldPassword" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">新密码 (至少6位)</label>
+                    <input type="password" class="form-input" id="newPassword" minlength="6" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary flex-1">确认修改</button>
+                    <button type="button" class="btn btn-ghost" onclick="hidePasswordModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE = '';
+        let authToken = localStorage.getItem('admin_token') || '';
+
+        // Toast System
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
+            toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'toast-in 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // API Request Helper
+        async function apiRequest(endpoint, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+
+            if (response.status === 401) {
+                logout();
+                throw new Error('会话已过期，请重新登录');
+            }
+
+            const data = response.status !== 204 ? await response.json() : {};
+            
+            if (!response.ok) {
+                throw new Error(data.detail || '请求失败');
+            }
+
+            return data;
+        }
+
+        // Auth Functions
+        async function login(username, password) {
+            const data = await apiRequest('/api/admin/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password })
+            });
+            
+            authToken = data.token;
+            localStorage.setItem('admin_token', authToken);
+            showMainView();
+            loadAnnouncements();
+            showToast('登录成功', 'success');
+        }
+
+        function logout() {
+            authToken = '';
+            localStorage.removeItem('admin_token');
+            showLoginView();
+        }
+
+        function showLoginView() {
+            document.getElementById('loginView').classList.remove('hidden');
+            document.getElementById('mainView').classList.add('hidden');
+        }
+
+        function showMainView() {
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('mainView').classList.remove('hidden');
+        }
+
+        // Announcement Functions
+        async function loadAnnouncements() {
+            try {
+                const announcements = await apiRequest('/api/admin/announcements');
+                renderAnnouncements(announcements);
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function renderAnnouncements(announcements) {
+            const container = document.getElementById('announcementList');
+            
+            if (!announcements || announcements.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <h3>暂无公告</h3>
+                        <p>发布第一条公告开始使用</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = announcements.map(a => `
+                <div class="announcement-item ${a.is_active ? '' : 'inactive'}">
+                    <div class="announcement-content">
+                        <div class="announcement-header">
+                            <span class="announcement-title">${escapeHtml(a.title)}</span>
+                            <span class="badge ${a.is_active ? 'badge-active' : 'badge-inactive'}">
+                                ${a.is_active ? '激活' : '停用'}
+                            </span>
+                            ${a.url ? '<span class="badge badge-url">网页</span>' : ''}
+                        </div>
+                        <div class="announcement-preview">
+                            ${a.url ? escapeHtml(a.url) : (escapeHtml(a.content) || '(无内容)')}
+                        </div>
+                        <div class="announcement-meta">
+                            <span>ID: ${a.id}</span>
+                            <span>创建于: ${formatDate(a.created_at)}</span>
+                        </div>
+                    </div>
+                    <div class="announcement-actions">
+                        <button class="btn btn-ghost btn-sm" onclick="toggleAnnouncement(${a.id}, ${!a.is_active})">
+                            ${a.is_active ? '停用' : '激活'}
+                        </button>
+                        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteAnnouncement(${a.id})" title="删除">
+                            🗑
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function createAnnouncement(title, content, url) {
+            try {
+                await apiRequest('/api/admin/announcement', {
+                    method: 'POST',
+                    body: JSON.stringify({ title, content, url })
+                });
+                showToast('公告发布成功', 'success');
+                loadAnnouncements();
+                document.getElementById('newTitle').value = '';
+                document.getElementById('newContent').value = '';
+                document.getElementById('newUrl').value = '';
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function deleteAnnouncement(id) {
+            if (!confirm('确定要删除这条公告吗？')) return;
+            
+            try {
+                await apiRequest(`/api/admin/announcement/${id}`, { method: 'DELETE' });
+                showToast('公告已删除', 'success');
+                loadAnnouncements();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function toggleAnnouncement(id, isActive) {
+            try {
+                await apiRequest(`/api/admin/announcement/${id}/toggle?is_active=${isActive}`, { method: 'PATCH' });
+                showToast(`公告已${isActive ? '激活' : '停用'}`, 'success');
+                loadAnnouncements();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Password Modal
+        function showPasswordModal() {
+            document.getElementById('passwordModal').classList.remove('hidden');
+        }
+
+        function hidePasswordModal() {
+            document.getElementById('passwordModal').classList.add('hidden');
+            document.getElementById('passwordForm').reset();
+        }
+
+        async function changePassword(oldPwd, newPwd) {
+            try {
+                await apiRequest('/api/admin/change-password', {
+                    method: 'POST',
+                    body: JSON.stringify({ old_password: oldPwd, new_password: newPwd })
+                });
+                showToast('密码修改成功，请重新登录', 'success');
+                hidePasswordModal();
+                logout();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Utilities
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(isoString) {
+            return new Date(isoString).toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Event Listeners
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                await login(username, password);
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        });
+
+        document.getElementById('createForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('newTitle').value.trim();
+            const content = document.getElementById('newContent').value.trim();
+            const url = document.getElementById('newUrl').value.trim();
+            
+            if (!title) {
+                showToast('请输入标题', 'error');
+                return;
+            }
+            
+            await createAnnouncement(title, content, url);
+        });
+
+        document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const oldPwd = document.getElementById('oldPassword').value;
+            const newPwd = document.getElementById('newPassword').value;
+            await changePassword(oldPwd, newPwd);
+        });
+
+        // Tab Switching
+        document.querySelectorAll('.segment').forEach(segment => {
+            segment.addEventListener('click', () => {
+                document.querySelectorAll('.segment').forEach(s => s.classList.remove('active'));
+                segment.classList.add('active');
+                
+                const type = segment.dataset.type;
+                document.getElementById('contentInput').classList.toggle('hidden', type !== 'content');
+                document.getElementById('urlInput').classList.toggle('hidden', type !== 'url');
+            });
+        });
+
+        // Close modal on overlay click
+        document.getElementById('passwordModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) hidePasswordModal();
+        });
+
+        // Init: Check Token
+        if (authToken) {
+            apiRequest('/api/admin/announcements')
+                .then(data => {
+                    showMainView();
+                    renderAnnouncements(data);
+                })
+                .catch(() => logout());
+        }
+    </script>
+</body>
+</html>

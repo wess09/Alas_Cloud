@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alas 公告管理</title>
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --accent: #00d4ff;
+            --accent-hover: #00a8cc;
+            --text-primary: #e4e4e4;
+            --text-secondary: #888;
+            --danger: #ff4757;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --border: #2a2a4a;
+            --shadow: rgba(0, 212, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+
+        .card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: var(--accent);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--shadow);
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #0099cc);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background: #ff6b7a;
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-sm {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+        }
+
+        /* Announcement List */
+        .announcement-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .announcement-item {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .announcement-item.inactive {
+            opacity: 0.5;
+        }
+
+        .announcement-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .announcement-info h3 {
+            font-size: 1rem;
+            margin-bottom: 0.3rem;
+            color: var(--text-primary);
+        }
+
+        .announcement-info p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .announcement-info .meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .announcement-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-active {
+            background: var(--success);
+            color: #000;
+        }
+
+        .badge-inactive {
+            background: var(--text-secondary);
+            color: #000;
+        }
+
+        .badge-url {
+            background: var(--warning);
+            color: #000;
+        }
+
+        /* Login Form */
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+        }
+
+        .login-container .card {
+            text-align: center;
+        }
+
+        .login-container h1 {
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            max-width: 300px;
+        }
+
+        .toast.success { background: var(--success); color: #000; }
+        .toast.error { background: var(--danger); }
+        .toast.info { background: var(--accent); color: #000; }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .container { padding: 1rem; }
+            .header { flex-direction: column; gap: 1rem; text-align: center; }
+            .announcement-item { flex-direction: column; }
+            .announcement-actions { width: 100%; justify-content: flex-end; }
+        }
+
+        /* Hidden */
+        .hidden { display: none !important; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        .tab:hover:not(.active) {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <!-- Login View -->
+    <div id="loginView" class="login-container">
+        <div class="card">
+            <h1>🔐 Alas 管理后台</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="username" value="admin" autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="password" placeholder="输入密码" autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                    登录
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main View -->
+    <div id="mainView" class="container hidden">
+        <header class="header">
+            <h1>📢 公告管理</h1>
+            <div class="header-actions">
+                <button class="btn btn-secondary btn-sm" onclick="showChangePassword()">修改密码</button>
+                <button class="btn btn-danger btn-sm" onclick="logout()">退出登录</button>
+            </div>
+        </header>
+
+        <!-- Create Announcement -->
+        <div class="card">
+            <h2>发布新公告</h2>
+            <form id="createForm">
+                <div class="form-group">
+                    <label>标题 *</label>
+                    <input type="text" id="newTitle" placeholder="输入公告标题" required>
+                </div>
+                <div class="tabs">
+                    <button type="button" class="tab active" data-type="content">纯文本</button>
+                    <button type="button" class="tab" data-type="url">网页链接</button>
+                </div>
+                <div id="contentInput" class="form-group">
+                    <label>内容</label>
+                    <textarea id="newContent" placeholder="输入公告内容..."></textarea>
+                </div>
+                <div id="urlInput" class="form-group hidden">
+                    <label>网页 URL</label>
+                    <input type="url" id="newUrl" placeholder="https://example.com/announcement">
+                </div>
+                <button type="submit" class="btn btn-primary">发布公告</button>
+            </form>
+        </div>
+
+        <!-- Announcement List -->
+        <div class="card">
+            <h2>公告历史</h2>
+            <div id="announcementList" class="announcement-list">
+                <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <p>暂无公告</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="passwordModal" class="login-container hidden" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 100;">
+        <div class="card" style="width: 100%; max-width: 400px;">
+            <h2>修改密码</h2>
+            <form id="passwordForm">
+                <div class="form-group">
+                    <label>当前密码</label>
+                    <input type="password" id="oldPassword" required>
+                </div>
+                <div class="form-group">
+                    <label>新密码 (至少6位)</label>
+                    <input type="password" id="newPassword" minlength="6" required>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button type="submit" class="btn btn-primary">确认修改</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideChangePassword()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // API Base URL (same origin)
+        const API_BASE = '';
+        
+        // Token storage
+        let authToken = localStorage.getItem('admin_token') || '';
+
+        // Utility functions
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        async function apiRequest(endpoint, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers
+            });
+
+            if (response.status === 401) {
+                logout();
+                throw new Error('未授权，请重新登录');
+            }
+
+            const data = response.status !== 204 ? await response.json() : {};
+            
+            if (!response.ok) {
+                throw new Error(data.detail || '请求失败');
+            }
+
+            return data;
+        }
+
+        // Auth functions
+        async function login(username, password) {
+            const data = await apiRequest('/api/admin/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password })
+            });
+            
+            authToken = data.token;
+            localStorage.setItem('admin_token', authToken);
+            showMainView();
+            loadAnnouncements();
+            showToast('登录成功', 'success');
+        }
+
+        function logout() {
+            authToken = '';
+            localStorage.removeItem('admin_token');
+            showLoginView();
+        }
+
+        function showLoginView() {
+            document.getElementById('loginView').classList.remove('hidden');
+            document.getElementById('mainView').classList.add('hidden');
+        }
+
+        function showMainView() {
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('mainView').classList.remove('hidden');
+        }
+
+        // Announcement functions
+        async function loadAnnouncements() {
+            try {
+                const announcements = await apiRequest('/api/admin/announcements');
+                renderAnnouncements(announcements);
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function renderAnnouncements(announcements) {
+            const container = document.getElementById('announcementList');
+            
+            if (!announcements || announcements.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <p>暂无公告</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = announcements.map(a => `
+                <div class="announcement-item ${a.is_active ? '' : 'inactive'}">
+                    <div class="announcement-info">
+                        <h3>
+                            ${escapeHtml(a.title)}
+                            <span class="badge ${a.is_active ? 'badge-active' : 'badge-inactive'}">
+                                ${a.is_active ? '激活' : '停用'}
+                            </span>
+                            ${a.url ? '<span class="badge badge-url">网页</span>' : ''}
+                        </h3>
+                        <p>${a.url ? escapeHtml(a.url) : escapeHtml(a.content) || '(空内容)'}</p>
+                        <div class="meta">ID: ${a.id} | 创建于: ${formatDate(a.created_at)}</div>
+                    </div>
+                    <div class="announcement-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="toggleAnnouncement(${a.id}, ${!a.is_active})">
+                            ${a.is_active ? '停用' : '激活'}
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement(${a.id})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function createAnnouncement(title, content, url) {
+            try {
+                await apiRequest('/api/admin/announcement', {
+                    method: 'POST',
+                    body: JSON.stringify({ title, content, url })
+                });
+                showToast('公告发布成功', 'success');
+                loadAnnouncements();
+                // Reset form
+                document.getElementById('newTitle').value = '';
+                document.getElementById('newContent').value = '';
+                document.getElementById('newUrl').value = '';
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function deleteAnnouncement(id) {
+            if (!confirm('确定要删除这条公告吗？')) return;
+            
+            try {
+                await apiRequest(`/api/admin/announcement/${id}`, { method: 'DELETE' });
+                showToast('公告已删除', 'success');
+                loadAnnouncements();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function toggleAnnouncement(id, isActive) {
+            try {
+                await apiRequest(`/api/admin/announcement/${id}/toggle?is_active=${isActive}`, { method: 'PATCH' });
+                showToast(`公告已${isActive ? '激活' : '停用'}`, 'success');
+                loadAnnouncements();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Password change
+        function showChangePassword() {
+            document.getElementById('passwordModal').classList.remove('hidden');
+            document.getElementById('passwordModal').style.display = 'flex';
+        }
+
+        function hideChangePassword() {
+            document.getElementById('passwordModal').classList.add('hidden');
+            document.getElementById('passwordModal').style.display = 'none';
+            document.getElementById('passwordForm').reset();
+        }
+
+        async function changePassword(oldPwd, newPwd) {
+            try {
+                await apiRequest('/api/admin/change-password', {
+                    method: 'POST',
+                    body: JSON.stringify({ old_password: oldPwd, new_password: newPwd })
+                });
+                showToast('密码修改成功，请重新登录', 'success');
+                hideChangePassword();
+                logout();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Utility
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleString('zh-CN');
+        }
+
+        // Event listeners
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                await login(username, password);
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        });
+
+        document.getElementById('createForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('newTitle').value.trim();
+            const content = document.getElementById('newContent').value.trim();
+            const url = document.getElementById('newUrl').value.trim();
+            
+            if (!title) {
+                showToast('请输入标题', 'error');
+                return;
+            }
+            
+            await createAnnouncement(title, content, url);
+        });
+
+        document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const oldPwd = document.getElementById('oldPassword').value;
+            const newPwd = document.getElementById('newPassword').value;
+            await changePassword(oldPwd, newPwd);
+        });
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                const type = tab.dataset.type;
+                document.getElementById('contentInput').classList.toggle('hidden', type !== 'content');
+                document.getElementById('urlInput').classList.toggle('hidden', type !== 'url');
+            });
+        });
+
+        // Check existing token on load
+        if (authToken) {
+            // Verify token by attempting to load announcements
+            apiRequest('/api/admin/announcements')
+                .then(data => {
+                    showMainView();
+                    renderAnnouncements(data);
+                })
+                .catch(() => {
+                    logout();
+                });
+        }
+    </script>
+</body>
+</html>
