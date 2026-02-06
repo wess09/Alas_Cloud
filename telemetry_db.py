@@ -4,16 +4,20 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
+from pathlib import Path
 import asyncio
 import logging
 import secrets
 import hashlib
+import os
 
 # 日志配置
 logger = logging.getLogger("TelemetryDB")
 
-# 数据库配置
-DATABASE_URL = "sqlite+aiosqlite:///./telemetry.db"
+# 数据库配置 - 支持通过环境变量自定义数据目录
+DATA_DIR = Path(os.getenv("DATA_DIR", "."))
+DB_PATH = DATA_DIR / "telemetry.db"
+DATABASE_URL = f"sqlite+aiosqlite:///{DB_PATH}"
 
 # 创建异步引擎
 engine = create_async_engine(DATABASE_URL, echo=False)

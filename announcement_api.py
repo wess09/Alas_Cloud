@@ -19,9 +19,14 @@ import uvicorn
 
 # ----------------- 基础配置 -----------------
 BASE_DIR = Path(__file__).parent
-BUG_LOG_DIR_PATH = BASE_DIR / "bug_logs"
-BLACKLIST_FILE = BASE_DIR / "blacklist.txt"
-LOG_FILE = BASE_DIR / "api.log"
+
+# 数据目录配置 - 支持通过环境变量自定义
+DATA_DIR = Path(os.getenv("DATA_DIR", BASE_DIR))
+DATA_DIR.mkdir(exist_ok=True)
+
+BUG_LOG_DIR_PATH = DATA_DIR / "bug_logs"
+BLACKLIST_FILE = DATA_DIR / "blacklist.txt"
+LOG_FILE = DATA_DIR / "api.log"
 FRONTEND_DIR = BASE_DIR / "frontend"
 
 # JWT 配置

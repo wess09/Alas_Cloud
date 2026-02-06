@@ -10,16 +10,16 @@
 # 拉取最新镜像
 docker pull <username>/alas-cloud:latest
 
+# 创建数据目录
+mkdir -p data
+
 # 运行容器
 docker run -d \
   --name alas-api \
   -p 8000:8000 \
-  -v $(pwd)/telemetry.db:/app/telemetry.db \
-  -v $(pwd)/api.log:/app/api.log \
-  -v $(pwd)/blacklist.txt:/app/blacklist.txt \
-  -v $(pwd)/bug_logs:/app/bug_logs \
-  -v $(pwd)/.jwt_secret:/app/.jwt_secret \
+  -v $(pwd)/data:/app/data \
   -e TZ=Asia/Shanghai \
+  -e DATA_DIR=/app/data \
   --restart unless-stopped \
   <username>/alas-cloud:latest
 ```
@@ -57,21 +57,24 @@ docker-compose up -d
 
 ## 环境变量
 
-| 变量名 | 说明     | 默认值          |
-| ------ | -------- | --------------- |
-| `TZ`   | 时区设置 | `Asia/Shanghai` |
+| 变量名     | 说明             | 默认值          |
+| ---------- | ---------------- | --------------- |
+| `TZ`       | 时区设置         | `Asia/Shanghai` |
+| `DATA_DIR` | 数据文件存储目录 | `/app/data`     |
 
 ## 数据持久化
 
-以下数据通过 volume 挂载持久化存储：
+所有数据文件存储在 `data/` 目录中，通过 volume 挂载持久化：
 
-- **telemetry.db**: SQLite 数据库文件（存储遥测数据、公告、管理员账户等）
-- **api.log**: API 访问和错误日志
-- **blacklist.txt**: IP 黑名单文件
-- **bug_logs/**: Bug 报告目录
-- **.jwt_secret**: JWT 密钥（自动生成）
+- **data/telemetry.db**: SQLite 数据库文件（存储遥测数据、公告、管理员账户等）
+- **data/api.log**: API 访问和错误日志（自动轮转，最多 5 个 10MB 文件）
+- **data/blacklist.txt**: IP 黑名单文件
+- **data/bug_logs/**: Bug 报告目录
 
-> **⚠️ 注意**: 删除容器不会丢失数据，但删除挂载的文件或 volume 会导致数据丢失。
+> **⚠️ 注意**:
+>
+> - 删除容器不会丢失数据，但删除 `data/` 目录会导致数据丢失
+> - `.jwt_secret` 文件在容器内生成，容器重启会重新生成（需重新登录管理后台）
 
 ## 端口说明
 
