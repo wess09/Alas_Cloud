@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  alas-api:
+    build: .
+    image: alas-cloud:latest
+    container_name: alas-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      # 数据持久化
+      - ./telemetry.db:/app/telemetry.db
+      - ./api.log:/app/api.log
+      - ./blacklist.txt:/app/blacklist.txt
+      - ./bug_logs:/app/bug_logs
+      - ./.jwt_secret:/app/.jwt_secret
+    environment:
+      - TZ=Asia/Shanghai
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
