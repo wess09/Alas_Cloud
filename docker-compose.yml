@@ -9,8 +9,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # 数据持久化 - 挂载整个数据目录
-      - ./data:/app/data
+      # 使用命名 volume 解决权限问题
+      - alas-data:/app/data
     environment:
       - TZ=Asia/Shanghai
       - DATA_DIR=/app/data
@@ -20,3 +20,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 5s
+
+# 定义命名 volume
+volumes:
+  alas-data:
+    driver: local

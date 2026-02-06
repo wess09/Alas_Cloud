@@ -30,14 +30,7 @@ COPY reset_admin.py .
 COPY frontend/ ./frontend/
 
 # 创建必要的目录
-RUN mkdir -p /app/bug_logs
-
-# 创建非 root 用户并设置权限
-RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app
-
-# 切换到非 root 用户
-USER appuser
+RUN mkdir -p /app/bug_logs /app/data
 
 # 暴露端口
 EXPOSE 8000
