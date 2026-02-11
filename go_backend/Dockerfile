@@ -9,11 +9,11 @@ RUN apk add --no-cache gcc musl-dev
 # Copy go.mod and go.sum files
 COPY go.mod go.sum ./
 
-# Download dependencies
-RUN go mod tidy && go mod download
-
 # Copy source code
 COPY . .
+
+# Tidy and download dependencies
+RUN go mod tidy && go mod download
 
 # Build the application
 # CGO_ENABLED=1 is required for go-sqlite3
