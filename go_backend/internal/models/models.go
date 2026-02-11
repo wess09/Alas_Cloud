@@ -6,20 +6,20 @@ import (
 
 // TelemetryData 遥测数据模型
 type TelemetryData struct {
-	ID                uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	DeviceID          string    `gorm:"index;not null" json:"device_id"`
-	InstanceID        string    `gorm:"index;not null" json:"instance_id"`
-	IPAddress         string    `gorm:"index" json:"ip_address"`
-	Month             string    `gorm:"index;not null" json:"month"`
-	BattleCount       int       `gorm:"not null" json:"battle_count"`
-	BattleRounds      int       `gorm:"not null" json:"battle_rounds"`
-	SortieCost        int       `gorm:"not null" json:"sortie_cost"`
-	AkashiEncounters  int       `gorm:"not null" json:"akashi_encounters"`
-	AkashiProbability float64   `gorm:"not null" json:"akashi_probability"`
-	AverageStamina    float64   `gorm:"not null" json:"average_stamina"`
-	NetStaminaGain    int       `gorm:"not null" json:"net_stamina_gain"`
-	CreatedAt         time.Time `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt         time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	ID                uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
+	DeviceID          string    `gorm:"uniqueIndex:uix_device_instance;not null;column:device_id" json:"device_id"`
+	InstanceID        string    `gorm:"uniqueIndex:uix_device_instance;not null;column:instance_id" json:"instance_id"`
+	IPAddress         string    `gorm:"index;column:ip_address" json:"ip_address"`
+	Month             string    `gorm:"index;not null;column:month" json:"month"`
+	BattleCount       int       `gorm:"not null;column:battle_count" json:"battle_count"`
+	BattleRounds      int       `gorm:"not null;column:battle_rounds" json:"battle_rounds"`
+	SortieCost        int       `gorm:"not null;column:sortie_cost" json:"sortie_cost"`
+	AkashiEncounters  int       `gorm:"not null;column:akashi_encounters" json:"akashi_encounters"`
+	AkashiProbability float64   `gorm:"not null;column:akashi_probability" json:"akashi_probability"`
+	AverageStamina    float64   `gorm:"not null;column:average_stamina" json:"average_stamina"`
+	NetStaminaGain    int       `gorm:"not null;column:net_stamina_gain" json:"net_stamina_gain"`
+	CreatedAt         time.Time `gorm:"autoCreateTime;column:created_at" json:"created_at"`
+	UpdatedAt         time.Time `gorm:"autoUpdateTime;column:updated_at" json:"updated_at"`
 }
 
 // TableName 指定表名
