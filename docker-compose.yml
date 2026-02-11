@@ -2,15 +2,15 @@ version: '3.8'
 
 services:
   alas-api:
-    build: .
+    build: ./go_backend
     image: hajiming/alas-cloud:latest
     container_name: alas-api
     restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
-      # 使用命名 volume 解决权限问题
-      - alas-data:/app/data
+      # 数据持久化 - 挂载整个数据目录
+      - ./data:/app/data
     environment:
       - TZ=Asia/Shanghai
       - DATA_DIR=/app/data
@@ -20,8 +20,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 5s
-
-# 定义命名 volume
-volumes:
-  alas-data:
-    driver: local
