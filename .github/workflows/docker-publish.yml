@@ -5,10 +5,14 @@ on:
     branches: ["main", "master"]
     paths:
       - "go_backend/**"
+      - ".github/workflows/**"
+      - "Dockerfile"
   pull_request:
     branches: ["main", "master"]
     paths:
       - "go_backend/**"
+      - ".github/workflows/**"
+      - "Dockerfile"
 
 env:
   # Use docker.io for Docker Hub
