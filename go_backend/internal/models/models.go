@@ -1,0 +1,96 @@
+package models
+
+import (
+	"time"
+)
+
+// TelemetryData 遥测数据模型
+type TelemetryData struct {
+	ID                uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	DeviceID          string    `gorm:"index;not null" json:"device_id"`
+	InstanceID        string    `gorm:"index;not null" json:"instance_id"`
+	IPAddress         string    `gorm:"index" json:"ip_address"`
+	Month             string    `gorm:"index;not null" json:"month"`
+	BattleCount       int       `gorm:"not null" json:"battle_count"`
+	BattleRounds      int       `gorm:"not null" json:"battle_rounds"`
+	SortieCost        int       `gorm:"not null" json:"sortie_cost"`
+	AkashiEncounters  int       `gorm:"not null" json:"akashi_encounters"`
+	AkashiProbability float64   `gorm:"not null" json:"akashi_probability"`
+	AverageStamina    float64   `gorm:"not null" json:"average_stamina"`
+	NetStaminaGain    int       `gorm:"not null" json:"net_stamina_gain"`
+	CreatedAt         time.Time `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt         time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+}
+
+// TableName 指定表名
+func (TelemetryData) TableName() string {
+	return "telemetry_data"
+}
+
+// Announcement 公告数据模型
+type Announcement struct {
+	ID               uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	AnnouncementHash string    `gorm:"uniqueIndex;not null;size:32" json:"hash"`
+	Title            string    `gorm:"not null" json:"title"`
+	Content          string    `json:"content"`
+	URL              string    `json:"url"`
+	CreatedAt        time.Time `gorm:"autoCreateTime" json:"created_at"`
+	IsActive         bool      `gorm:"default:true" json:"is_active"`
+}
+
+// TableName 指定表名
+func (Announcement) TableName() string {
+	return "announcements"
+}
+
+// AdminUser 管理员账户模型
+type AdminUser struct {
+	ID           uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	Username     string    `gorm:"uniqueIndex;not null" json:"username"`
+	PasswordHash string    `gorm:"not null" json:"-"` // 不在 JSON 中返回
+	CreatedAt    time.Time `gorm:"autoCreateTime" json:"created_at"`
+}
+
+// TableName 指定表名
+func (AdminUser) TableName() string {
+	return "admin_users"
+}
+
+// API Request/Response Models
+
+type TelemetryRequest struct {
+	DeviceID          string  `json:"device_id" binding:"required"`
+	InstanceID        string  `json:"instance_id" binding:"required"`
+	Month             string  `json:"month" binding:"required"`
+	BattleCount       int     `json:"battle_count" binding:"gte=0"`
+	BattleRounds      int     `json:"battle_rounds" binding:"gte=0"`
+	SortieCost        int     `json:"sortie_cost" binding:"gte=0"`
+	AkashiEncounters  int     `json:"akashi_encounters" binding:"gte=0"`
+	AkashiProbability float64 `json:"akashi_probability" binding:"gte=0,lte=1"`
+	AverageStamina    float64 `json:"average_stamina" binding:"gte=0"`
+	NetStaminaGain    int     `json:"net_stamina_gain"`
+}
+
+type BugReportRequest struct {
+	DeviceID       string                 `json:"device_id"`
+	LogType        string                 `json:"log_type" binding:"required"`
+	LogContent     string                 `json:"log_content" binding:"required"`
+	Timestamp      string                 `json:"timestamp"`
+	AdditionalInfo map[string]interface{} `json:"additional_info"`
+}
+
+type LoginRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type AnnouncementRequest struct {
+	Title   string `json:"title" binding:"required,min=1"`
+	Content string `json:"content"`
+	URL     string `json:"url"`
+}
+
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+}
