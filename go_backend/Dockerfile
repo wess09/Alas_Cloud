@@ -24,8 +24,8 @@ FROM alpine:latest
 
 WORKDIR /app
 
-# Install runtime dependencies (e.g., certificates, tzdata)
-RUN apk --no-cache add ca-certificates tzdata
+# Install runtime dependencies (e.g., certificates, tzdata, curl)
+RUN apk --no-cache add ca-certificates tzdata curl
 
 # Copy the binary from the builder stage
 COPY --from=builder /app/alas-api-go .
