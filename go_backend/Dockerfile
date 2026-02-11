@@ -29,6 +29,8 @@ RUN apk --no-cache add ca-certificates tzdata curl
 
 # Copy the binary from the builder stage
 COPY --from=builder /app/alas-api-go .
+# Copy frontend static files
+COPY --from=builder /app/frontend ./frontend
 
 # Create necessary directories
 RUN mkdir -p /app/data /app/bug_logs

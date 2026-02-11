@@ -72,17 +72,21 @@ func AdminChangePassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "密码已更新"})
 }
 
-// EnsureDefaultAdmin 确保管理员存在
+// EnsureDefaultAdmin 确保管理员存在，且默认密码为 admin123
 func EnsureDefaultAdmin() {
-	var count int64
-	database.DB.Model(&models.AdminUser{}).Where("username = ?", "admin").Count(&count)
-	if count == 0 {
-		defaultPassword := "admin123"
-		user := models.AdminUser{
+	var user models.AdminUser
+	result := database.DB.Where("username = ?", "admin").First(&user)
+
+	defaultPassword := "admin123"
+	passwordHash := utils.HashPassword(defaultPassword)
+
+	if result.Error != nil {
+		// 不存在则创建
+		user = models.AdminUser{
 			Username:     "admin",
-			PasswordHash: utils.HashPassword(defaultPassword),
+			PasswordHash: passwordHash,
 		}
 		database.DB.Create(&user)
-		log.Printf("🔐 Created default admin user with password: %s", defaultPassword)
+		log.Printf("🔐 Created default admin user: admin / %s", defaultPassword)
 	}
 }
