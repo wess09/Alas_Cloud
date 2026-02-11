@@ -11,8 +11,8 @@ on:
       - "go_backend/**"
 
 env:
-  # Use docker.io for Docker Hub if empty
-  REGISTRY: ""
+  # Use docker.io for Docker Hub
+  REGISTRY: docker.io
   # Docker Hub repository
   IMAGE_NAME: hajiming/alas-cloud
 
