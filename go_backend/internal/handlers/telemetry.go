@@ -8,10 +8,53 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+// ---- SSE 广播器 ----
+
+type StatsBroadcaster struct {
+	mu      sync.RWMutex
+	clients map[chan struct{}]struct{}
+}
+
+var statsBroadcaster = &StatsBroadcaster{
+	clients: make(map[chan struct{}]struct{}),
+}
+
+// Subscribe 注册一个 SSE 客户端，返回通知 channel
+func (b *StatsBroadcaster) Subscribe() chan struct{} {
+	ch := make(chan struct{}, 1) // buffer 1 防止阻塞
+	b.mu.Lock()
+	b.clients[ch] = struct{}{}
+	b.mu.Unlock()
+	return ch
+}
+
+// Unsubscribe 移除一个 SSE 客户端
+func (b *StatsBroadcaster) Unsubscribe(ch chan struct{}) {
+	b.mu.Lock()
+	delete(b.clients, ch)
+	b.mu.Unlock()
+}
+
+// NotifyUpdate 通知所有 SSE 客户端有新数据
+func (b *StatsBroadcaster) NotifyUpdate() {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	for ch := range b.clients {
+		select {
+		case ch <- struct{}{}:
+		default:
+			// channel 已有未消费的通知，跳过（合并多次更新）
+		}
+	}
+}
+
+// ---- Telemetry Handlers ----
 
 // SubmitTelemetry 提交遥测数据
 func SubmitTelemetry(c *gin.Context) {
@@ -27,7 +70,6 @@ func SubmitTelemetry(c *gin.Context) {
 	match, _ := regexp.MatchString("^[a-fA-F0-9]{32,64}$", req.DeviceID)
 	if !match {
 		middleware.BanIP(ip)
-		// 假装成功
 		c.JSON(http.StatusOK, gin.H{
 			"status": "success", "message": "遥测数据已保存",
 			"device_id": req.DeviceID, "instance_id": req.InstanceID,
@@ -70,14 +112,15 @@ func SubmitTelemetry(c *gin.Context) {
 		NetStaminaGain:    req.NetStaminaGain,
 	}
 
-	// 使用 Upsert (Clause.OnConflict)
-	// SQLite 支持 ON CONFLICT
 	if err := database.DB.Where(&models.TelemetryData{DeviceID: req.DeviceID, InstanceID: req.InstanceID}).
 		Assign(data).
 		FirstOrCreate(&data).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// 通知所有 SSE 客户端
+	statsBroadcaster.NotifyUpdate()
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success", "message": "遥测数据已保存",
@@ -97,8 +140,6 @@ func buildStatsResponse() gin.H {
 	}
 
 	var res Result
-	// GORM 聚合查询
-	// 总获取体力 = Σ(遇见明石次数_i × 平均获取体力_i)
 	database.DB.Model(&models.TelemetryData{}).Select(
 		"count(id) as total_devices",
 		"sum(battle_count) as total_battle_count",
@@ -108,22 +149,18 @@ func buildStatsResponse() gin.H {
 		"sum(akashi_encounters * average_stamina) as total_stamina_gain",
 	).Scan(&res)
 
-	// 遇见明石概率 = 总遇见明石次数 / 总战斗轮次
 	avgAkashiProbability := 0.0
 	if res.TotalBattleRounds > 0 {
 		avgAkashiProbability = float64(res.TotalAkashiEncounters) / float64(res.TotalBattleRounds)
 	}
 
-	// 平均体力 = 总获取体力 / 总遇见明石次数
 	avgStamina := 0.0
 	if res.TotalAkashiEncounters > 0 {
 		avgStamina = res.TotalStaminaGain / float64(res.TotalAkashiEncounters)
 	}
 
-	// 净赚体力 = 总获取体力 - 总战斗轮次 × 5（侵蚀一）
 	netStaminaGain := res.TotalStaminaGain - float64(res.TotalBattleRounds)*5
 
-	// 循环效率 = 净赚体力 / 出击消耗
 	cycleEfficiency := 0.0
 	if res.TotalSortieCost > 0 {
 		cycleEfficiency = netStaminaGain / float64(res.TotalSortieCost)
@@ -153,21 +190,30 @@ func StreamTelemetryStats(c *gin.Context) {
 	c.Writer.Header().Set("Content-Type", "text/event-stream")
 	c.Writer.Header().Set("Cache-Control", "no-cache")
 	c.Writer.Header().Set("Connection", "keep-alive")
-	c.Writer.Header().Set("X-Accel-Buffering", "no") // nginx 禁用缓冲
+	c.Writer.Header().Set("X-Accel-Buffering", "no")
+
+	// 订阅广播
+	updateCh := statsBroadcaster.Subscribe()
+	defer statsBroadcaster.Unsubscribe(updateCh)
 
 	clientGone := c.Request.Context().Done()
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
+	heartbeat := time.NewTicker(30 * time.Second)
+	defer heartbeat.Stop()
 
-	// 立即发送一次
+	// 立即发送当前数据
 	sendSSEEvent(c, buildStatsResponse())
 
 	for {
 		select {
 		case <-clientGone:
 			return
-		case <-ticker.C:
+		case <-updateCh:
+			// 有新数据，立即推送
 			sendSSEEvent(c, buildStatsResponse())
+		case <-heartbeat.C:
+			// 心跳保活，防止代理/CDN 超时断开
+			fmt.Fprintf(c.Writer, ": heartbeat\n\n")
+			c.Writer.Flush()
 		}
 	}
 }
@@ -180,3 +226,5 @@ func sendSSEEvent(c *gin.Context, data gin.H) {
 	fmt.Fprintf(c.Writer, "data: %s\n\n", jsonData)
 	c.Writer.Flush()
 }
+
+
