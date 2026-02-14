@@ -41,6 +41,21 @@ async function fetchSuspects() {
                             ${user.report_count} / 5
                         </div>
                     </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin: 0.75rem 0;">
+                        <div style="text-align: center; padding: 0.5rem; background: rgba(0,0,0,0.3); border-radius: 0.5rem;">
+                            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase;">⚔️ Rounds</div>
+                            <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">${formatNumber(user.battle_rounds)}</div>
+                        </div>
+                        <div style="text-align: center; padding: 0.5rem; background: rgba(0,0,0,0.3); border-radius: 0.5rem;">
+                            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase;">⚡ Stamina</div>
+                            <div style="font-size: 1.1rem; font-weight: 700; color: ${user.net_stamina_gain >= 0 ? '#2ed573' : '#ff4757'};">${(user.net_stamina_gain >= 0 ? '+' : '') + formatNumber(user.net_stamina_gain)}</div>
+                        </div>
+                        <div style="text-align: center; padding: 0.5rem; background: rgba(0,0,0,0.3); border-radius: 0.5rem;">
+                            <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase;">🐱 Akashi</div>
+                            <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">${formatNumber(user.akashi_encounters)}</div>
+                        </div>
+                    </div>
                     
                     <div class="reason-box">
                         <strong>Latest Report:</strong><br>

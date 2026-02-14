@@ -144,19 +144,32 @@ func banUser(targetID, reason string) error {
 
 // GetReportedUsersResponse 响应结构
 type GetReportedUsersResponse struct {
-	TargetID     string `json:"target_id"`
-	Username     string `json:"username"`
-	ReportCount  int64  `json:"report_count"`
-	LatestReason string `json:"latest_reason"`
+	TargetID         string `json:"target_id"`
+	Username         string `json:"username"`
+	ReportCount      int64  `json:"report_count"`
+	LatestReason     string `json:"latest_reason"`
+	BattleRounds     int    `json:"battle_rounds"`
+	NetStaminaGain   int    `json:"net_stamina_gain"`
+	AkashiEncounters int    `json:"akashi_encounters"`
 }
 
 // GetReportedUsers 获取被举报用户列表
 func GetReportedUsers(c *gin.Context) {
 	var results []GetReportedUsersResponse
 
+	// 联合查询: reports + user_profiles + telemetry_data 聚合统计
 	err := database.DB.Table("reports").
-		Select("reports.target_id, count(reports.id) as report_count, MAX(reports.reason) as latest_reason, COALESCE(user_profiles.username, 'Unknown') as username").
+		Select(
+			"reports.target_id, "+
+			"count(DISTINCT reports.id) as report_count, "+
+			"MAX(reports.reason) as latest_reason, "+
+			"COALESCE(user_profiles.username, 'Unknown') as username, "+
+			"COALESCE(SUM(telemetry_data.battle_rounds), 0) as battle_rounds, "+
+			"COALESCE((SUM(telemetry_data.net_stamina_gain) - SUM(telemetry_data.battle_rounds * 5)), 0) as net_stamina_gain, "+
+			"COALESCE(SUM(telemetry_data.akashi_encounters), 0) as akashi_encounters",
+		).
 		Joins("LEFT JOIN user_profiles ON user_profiles.device_id = reports.target_id").
+		Joins("LEFT JOIN telemetry_data ON telemetry_data.device_id = reports.target_id").
 		Group("reports.target_id").
 		Scan(&results).Error
 
