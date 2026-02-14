@@ -92,9 +92,9 @@ function updateUI(data) {
   // 整数格式化（带千位分隔符）
   const fmtInt = (n) => formatNumber(Math.round(n));
   // 百分比格式化
-  const fmtPct = (n) => (n * 100).toFixed(2) + "%";
+  const fmtPct = (n) => (n * 100).toFixed(5) + "%";
   // 小数格式化（5 位）
-  const fmtDec5 = (n) => n.toFixed(5);
+  const fmtDec5 = (n) => n.toFixed(3);
 
   // 卡片动画
   animateValue("total-devices", data.total_devices ?? 0, fmtInt);

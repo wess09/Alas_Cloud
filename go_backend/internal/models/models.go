@@ -4,6 +4,19 @@ import (
 	"time"
 )
 
+// UserProfile 用户个人资料
+type UserProfile struct {
+	DeviceID  string    `gorm:"primaryKey;uniqueIndex;column:device_id" json:"device_id"`
+	Username  string    `gorm:"column:username" json:"username"`
+	CreatedAt time.Time `gorm:"autoCreateTime;column:created_at" json:"created_at"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime;column:updated_at" json:"updated_at"`
+}
+
+// TableName 指定表名
+func (UserProfile) TableName() string {
+	return "user_profiles"
+}
+
 // TelemetryData 遥测数据模型
 type TelemetryData struct {
 	ID                uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`

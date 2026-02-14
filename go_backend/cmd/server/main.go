@@ -29,6 +29,7 @@ func main() {
 
 	// 启动后台任务
 	tasks.StartCleanupTask()
+	tasks.StartUsernameGeneratorTask()
 
 	// 设置 Gin 模式
 	if os.Getenv("GIN_MODE") == "release" {
@@ -67,6 +68,10 @@ func main() {
 	r.GET("/api/telemetry/stats", handlers.GetTelemetryStats)
 	r.GET("/api/telemetry/stats/stream", handlers.StreamTelemetryStats)
 	r.POST("/api/post/bug", handlers.SubmitBug) // 假设 Bug 报告不需要鉴权，或者维持现状
+
+	// Leaderboard API
+	r.GET("/api/leaderboard", handlers.GetLeaderboard)
+	r.POST("/api/user/profile", handlers.UpdateUserProfile)
 
 	// Admin API
 	r.POST("/api/admin/login", handlers.AdminLogin)

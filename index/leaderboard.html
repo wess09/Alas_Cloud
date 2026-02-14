@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alas Telemetry | Leaderboard</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        /* Leaderboard specific styles */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .pagination button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: all 0.2s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .user-form {
+            gap: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-group label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .input-group input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            min-width: 250px;
+        }
+
+        .btn {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 46px;
+            /* Align with input */
+        }
+
+        .btn:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 0 15px var(--glow-color);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .rank-cell {
+            font-weight: 700;
+            color: var(--accent-secondary);
+        }
+
+        /* Top 3 Highlighting */
+        tbody tr:nth-child(1) .rank-cell {
+            color: #ffd700;
+            font-size: 1.2em;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        tbody tr:nth-child(2) .rank-cell {
+            color: #c0c0c0;
+            font-size: 1.1em;
+        }
+
+        tbody tr:nth-child(3) .rank-cell {
+            color: #cd7f32;
+            font-size: 1.1em;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--accent-primary);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient-light">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+    <div class="container">
+        <header>
+            <div style="position: absolute; left: 0; top: 0;">
+                <a href="index.html" class="nav-link">← Back to Dashboard</a>
+            </div>
+            <div class="logo">
+                <span class="icon">🏆</span>
+                <h1>Commander Leaderboard</h1>
+            </div>
+            <p class="subtitle">Hall of Fame</p>
+        </header>
+
+        <!-- Profile Management -->
+        <div class="card" style="margin-bottom: 3rem; overflow: visible;">
+            <div class="details-header">
+                <h3>Update Profile / 更新信息</h3>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div class="user-form">
+                    <div class="input-group">
+                        <label>Device ID / 设备 ID</label>
+                        <input type="text" id="device-id" placeholder="Enter your 32-64 char hash" />
+                    </div>
+                    <div class="input-group">
+                        <label>Username / 用于排行榜显示的昵称</label>
+                        <input type="text" id="username" placeholder="Anonymous Commander" />
+                    </div>
+                    <!-- Auto-Gen button removed as requested -->
+                    <button class="btn" onclick="updateProfile()">
+                        Save / 保存
+                    </button>
+                </div>
+                <p id="form-message" style="margin-top: 1rem; min-height: 1.5em;"></p>
+                <p style="font-size: 0.8em; color: var(--text-secondary); margin-top: 0.5rem;">
+                    * Default usernames are generated automatically based on your location. <br>
+                    * 默认昵称会根据您的位置自动生成 (例如：来自东京的猫娘小萝莉)。
+                </p>
+            </div>
+        </div>
+
+        <!-- Sorting Tabs -->
+        <div style="margin-bottom: 1.5rem; display: flex; justify-content: center; gap: 1rem;">
+            <button id="tab-rounds" class="btn" onclick="switchTab('rounds')">⚔️ Combat Rounds (战斗轮次)</button>
+            <button id="tab-stamina" class="btn btn-secondary" onclick="switchTab('stamina')">⚡ Net Stamina
+                (净赚体力)</button>
+        </div>
+
+        <!-- Leaderboard Table -->
+        <div class="card details-card">
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Rank</th>
+                            <th>Username</th>
+                            <th id="col-rounds" class="highlight">Battle Rounds</th>
+                            <th id="col-stamina">Net Stamina Gain</th>
+                            <th>Akashi Encounters</th>
+                            <th>Last Active</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <!-- JS Populated -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="pagination">
+            <button id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+            <span id="page-indicator" style="display: flex; align-items: center; color: var(--text-secondary);">Page
+                1</span>
+            <button id="next-btn" onclick="changePage(1)">Next</button>
+        </div>
+
+        <footer>
+            <p>Data provided by Alas Cloud API</p>
+        </footer>
+    </div>
+    <script src="leaderboard.js?v=2"></script>
+</body>
+
+</html>
