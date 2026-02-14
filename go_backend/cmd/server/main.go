@@ -73,6 +73,11 @@ func main() {
 	r.GET("/api/leaderboard", handlers.GetLeaderboard)
 	r.POST("/api/user/profile", handlers.UpdateUserProfile)
 
+	// Report & Ban API
+	r.POST("/api/report", handlers.ReportUser)
+	r.GET("/api/reports", handlers.GetReportedUsers)
+	r.GET("/api/bans", handlers.GetBannedUsers)
+
 	// Admin API
 	r.POST("/api/admin/login", handlers.AdminLogin)
 
@@ -84,6 +89,10 @@ func main() {
 		admin.GET("/announcements", handlers.ListAnnouncements)
 		admin.DELETE("/announcement/:id", handlers.DeleteAnnouncement)
 		admin.PATCH("/announcement/:id/toggle", handlers.ToggleAnnouncement)
+		
+		// User Management
+		admin.POST("/ban", handlers.DirectBanUser)
+		admin.POST("/unban", handlers.UnbanUser)
 	}
 
 	// 静态文件 (前端)

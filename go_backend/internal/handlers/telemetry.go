@@ -66,6 +66,17 @@ func SubmitTelemetry(c *gin.Context) {
 
 	ip := c.ClientIP()
 
+	// 0. 检查是否被封禁
+	var banCount int64
+	database.DB.Model(&models.BannedUser{}).
+		Where("device_id = ? OR ip_address = ?", req.DeviceID, ip).
+		Count(&banCount)
+	
+	if banCount > 0 {
+		c.JSON(http.StatusForbidden, gin.H{"error": "User is banned from the leaderboard."})
+		return
+	}
+
 	// 1. 校验 Device ID 格式
 	match, _ := regexp.MatchString("^[a-fA-F0-9]{32,64}$", req.DeviceID)
 	if !match {

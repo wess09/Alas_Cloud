@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alas Report Court | 举报法庭</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        .court-title {
+            color: #ff4757;
+            text-shadow: 0 0 20px rgba(255, 71, 87, 0.5);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 3rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-title .icon {
+            font-size: 1.5rem;
+        }
+
+        /* Suspect Grid */
+        .suspect-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .suspect-card {
+            background: linear-gradient(145deg, rgba(255, 71, 87, 0.1), rgba(30, 41, 59, 0.4));
+            border: 1px solid rgba(255, 71, 87, 0.3);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .suspect-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(255, 71, 87, 0.2);
+            border-color: #ff4757;
+        }
+
+        .suspect-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .suspect-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .suspect-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.3rem;
+        }
+
+        .report-count-badge {
+            background: #ff4757;
+            color: white;
+            font-weight: 700;
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.9rem;
+            box-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
+        }
+
+        .reason-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            border-left: 3px solid #ff4757;
+            flex-grow: 1;
+        }
+
+        .vote-btn {
+            width: 100%;
+            background: rgba(255, 71, 87, 0.15);
+            color: #ff4757;
+            border: 1px solid #ff4757;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .vote-btn:hover {
+            background: #ff4757;
+            color: white;
+            box-shadow: 0 0 15px rgba(255, 71, 87, 0.4);
+        }
+
+        /* Admin Panel */
+        .admin-panel {
+            margin-top: 4rem;
+            background: rgba(16, 185, 129, 0.05);
+            border: 1px dashed rgba(16, 185, 129, 0.3);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .admin-panel::before {
+            content: "ADMIN ONLY";
+            position: absolute;
+            top: -10px;
+            left: 2rem;
+            background: #030712;
+            color: #10b981;
+            padding: 0 1rem;
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .admin-form-group {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid var(--card-border);
+        }
+
+        .admin-form-group h4 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ban-group {
+            border-color: rgba(255, 71, 87, 0.2);
+        }
+
+        .unban-group {
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+
+        /* Input Styling Override */
+        .input-group input {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+            outline: none;
+        }
+
+        .input-group input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.2);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .input-group input::placeholder {
+            color: rgba(148, 163, 184, 0.5);
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            width: 100%;
+            height: 3.5rem;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Modal Specific Styling */
+        .modal-card {
+            background: rgba(15, 23, 42, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.1) !important;
+        }
+
+        .cancel-link {
+            display: inline-block;
+            margin-top: 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+        }
+
+        .cancel-link:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Banned Table Specifics */
+        .banned-table th {
+            color: #ff6b81;
+        }
+
+        .banned-table td {
+            font-size: 0.9rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 1rem;
+            border: 1px dashed var(--card-border);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient-light">
+        <div class="blob blob-1" style="background: radial-gradient(circle, #ff4757 0%, transparent 70%);"></div>
+        <div class="blob blob-2" style="background: #1e293b;"></div>
+        <div class="blob blob-3" style="background: #0f172a;"></div>
+    </div>
+    <div class="container">
+        <header>
+            <div style="position: absolute; left: 0; top: 0;">
+                <a href="leaderboard.html" class="nav-link">← 返回排行榜</a>
+            </div>
+            <div class="logo" style="border-color: rgba(255, 71, 87, 0.3);">
+                <span class="icon">⚖️</span>
+                <h1 class="court-title">举报法庭</h1>
+            </div>
+            <p class="subtitle">Report Court - Justice for Azur Lane</p>
+        </header>
+
+        <!-- Suspects Section -->
+        <div class="section-header">
+            <div class="section-title">
+                <span>🕵️ 嫌疑人名单 / Suspects</span>
+            </div>
+            <div style="font-size: 0.9rem; color: var(--text-secondary);">
+                Threshold: <span style="color: #ff4757; font-weight: bold;">5 Votes</span> to Ban
+            </div>
+        </div>
+
+        <div id="suspects-list" class="suspect-grid">
+            <!-- Populated by JS -->
+            <div class="empty-state" style="grid-column: 1/-1;">
+                Loading data...
+            </div>
+        </div>
+
+        <!-- Banned Users Section -->
+        <div class="section-header" style="margin-top: 5rem; border-color: rgba(255, 71, 87, 0.3);">
+            <div class="section-title">
+                <span style="color: #ff4757;">🚫 封禁名单 / Blacklist</span>
+            </div>
+        </div>
+
+        <div class="card details-card">
+            <div class="table-responsive">
+                <table class="data-table banned-table">
+                    <thead>
+                        <tr>
+                            <th>Device ID</th>
+                            <th>Username</th>
+                            <th>IP Address</th>
+                            <th>Reason</th>
+                            <th>Banned At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="banned-list">
+                        <!-- Populated by JS -->
+                        <tr>
+                            <td colspan="5" class="empty-state" style="border:none;">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Admin Panel -->
+        <div class="admin-panel" id="admin-panel" style="display: none;">
+            <h3 style="margin-bottom: 2rem; display: flex; align-items: center; gap: 0.5rem; color: #10b981;">
+                🛡️ 管理员操作 / Admin Zone
+                <button class="btn"
+                    style="width: auto; margin-left: auto; background: transparent; border: 1px solid #10b981; font-size: 0.8rem;"
+                    onclick="logout()">Logout</button>
+            </h3>
+
+            <div class="form-grid">
+                <!-- Direct Ban Form -->
+                <div class="admin-form-group ban-group">
+                    <h4 style="color: #ff4757;">🔨 直接封禁 / Direct Ban</h4>
+                    <div class="input-group">
+                        <label>Target Device ID</label>
+                        <input type="text" id="ban-id" placeholder="Enter Device ID">
+                    </div>
+                    <div class="input-group">
+                        <label>Reason</label>
+                        <input type="text" id="ban-reason" placeholder="Ban Reason (Optional)">
+                    </div>
+                    <!-- Password removed, using Token -->
+                    <button class="btn" style="background: #ff4757;" onclick="directBanUser()">
+                        执行封禁 / Execute Ban
+                    </button>
+                </div>
+
+                <!-- Unban Form -->
+                <div class="admin-form-group unban-group">
+                    <h4 style="color: #10b981;">🔓 解封 / Unban</h4>
+                    <div class="input-group">
+                        <label>Target Device ID</label>
+                        <input type="text" id="unban-id" placeholder="Enter Device ID">
+                    </div>
+                    <!-- Password removed, using Token -->
+                    <button class="btn" style="background: #10b981; margin-top: auto;" onclick="unbanUser()">
+                        执行解封 / Execute Unban
+                    </button>
+                </div>
+            </div>
+
+            <p id="admin-msg" style="margin-top: 1.5rem; text-align: center; font-weight: 600; min-height: 1.5em;"></p>
+        </div>
+
+        <!-- Login Modal -->
+        <div id="login-modal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(12px);">
+            <div class="card modal-card"
+                style="width: 100%; max-width: 400px; padding: 2.5rem; animation: fadeIn 0.3s ease-out;">
+                <h2 style="text-align: center; margin-bottom: 2rem; font-weight: 700; letter-spacing: -0.02em;">Admin
+                    Login</h2>
+                <div class="input-group">
+                    <label>Username</label>
+                    <input type="text" id="login-username" value="admin" placeholder="Username">
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" placeholder="••••••••">
+                </div>
+                <button class="btn" style="background: linear-gradient(135deg, var(--accent-primary), #4f46e5);"
+                    onclick="performLogin()">
+                    Sign In
+                </button>
+                <div style="text-align: center;">
+                    <a href="#" class="cancel-link"
+                        onclick="document.getElementById('login-modal').style.display='none'">Cancel</a>
+                </div>
+            </div>
+        </div>
+
+        <footer style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+            <p>数据由 Alas Cloud API 提供 | <a href="leaderboard.html"
+                    style="color: var(--text-secondary); text-decoration: underline;">返回排行榜</a></p>
+            <button onclick="document.getElementById('login-modal').style.display='flex'"
+                style="background: transparent; border: none; color: #334155; cursor: pointer;">
+                🔒
+            </button>
+        </footer>
+    </div>
+    <script src="report.js"></script>
+</body>

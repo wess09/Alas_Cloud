@@ -69,6 +69,35 @@ func (AdminUser) TableName() string {
 	return "admin_users"
 }
 
+// Report 举报模型
+type Report struct {
+	ID           uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	TargetID     string    `gorm:"index;not null;column:target_id" json:"target_id"`     // 被举报人 DeviceID
+	ReporterID   string    `gorm:"index;not null;column:reporter_id" json:"reporter_id"` // 举报人 DeviceID (或 IP)
+	Reason       string    `gorm:"column:reason" json:"reason"`
+	CreatedAt    time.Time `gorm:"autoCreateTime;column:created_at" json:"created_at"`
+}
+
+// TableName 指定表名
+func (Report) TableName() string {
+	return "reports"
+}
+
+// BannedUser 封禁用户模型
+type BannedUser struct {
+	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	DeviceID  string    `gorm:"uniqueIndex;column:device_id" json:"device_id"` // 被封禁的 DeviceID
+	IPAddress string    `gorm:"index;column:ip_address" json:"ip_address"`     // 被封禁的 IP (最后一次已知 IP)
+	Username  string    `gorm:"column:username" json:"username"`               // 封禁时的用户名 (备份用)
+	Reason    string    `gorm:"column:reason" json:"reason"`
+	BannedAt  time.Time `gorm:"autoCreateTime;column:banned_at" json:"banned_at"`
+}
+
+// TableName 指定表名
+func (BannedUser) TableName() string {
+	return "banned_users"
+}
+
 // API Request/Response Models
 
 type TelemetryRequest struct {

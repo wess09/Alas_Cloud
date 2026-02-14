@@ -120,6 +120,11 @@ async function loadLeaderboard(page) {
                     <td class="text-success ${currentSort === 'stamina' ? 'highlight' : ''}">${(entry.net_stamina_gain >= 0 ? '+' : '') + formatNumber(entry.net_stamina_gain)}</td>
                     <td>${formatNumber(entry.akashi_encounters)}</td>
                     <td style="color:var(--text-secondary); font-size:0.85em;">${dateStr}</td>
+                    <td>
+                        <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.8em; height: auto;" onclick="reportUser('${entry.device_id}', '${escapeHtml(entry.username)}')">
+                            🚩 举报
+                        </button>
+                    </td>
                 </tr>
             `;
         });
@@ -135,6 +140,35 @@ async function loadLeaderboard(page) {
     } catch (e) {
         console.error(e);
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#f87171;">加载失败</td></tr>';
+    }
+}
+
+async function reportUser(targetId, username) {
+    const reason = prompt(`请输入举报 [${username}] 的原因：\nPlease enter the reason for reporting [${username}]:`);
+    if (reason === null) return; // Cancelled
+    if (!reason.trim()) {
+        alert("原因不能为空 / Reason cannot be empty");
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/report`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                target_id: targetId,
+                reason: reason
+            })
+        });
+        const json = await res.json();
+
+        if (res.ok) {
+            alert("举报成功，我们将尽快处理。\nReport submitted successfully.");
+        } else {
+            alert("举报失败: " + (json.error || "Unknown error"));
+        }
+    } catch (e) {
+        alert("网络错误 / Network Error");
     }
 }
 
