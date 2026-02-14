@@ -12,23 +12,29 @@ function formatPercent(num) {
   return (num * 100).toFixed(2);
 }
 
-// 加载数据
-async function loadData() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/telemetry/stats`);
-    if (!response.ok) throw new Error("Network response was not ok");
-    const data = await response.json();
+// SSE 连接加载数据（实时推送）
+function connectSSE() {
+  const evtSource = new EventSource(`${API_BASE_URL}/api/telemetry/stats/stream`);
 
-    updateUI(data);
-  } catch (error) {
-    console.error("Error fetching data:", error);
-    // 如果 API 失败,可以设置错误状态,这里保持 '--'
-  }
+  evtSource.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      updateUI(data);
+    } catch (e) {
+      console.error("Error parsing SSE data:", e);
+    }
+  };
+
+  evtSource.onerror = (err) => {
+    console.warn("SSE connection error, will auto-reconnect:", err);
+    // EventSource 会自动重连，无需手动处理
+  };
+
+  return evtSource;
 }
 
 // 更新 UI
 function updateUI(data) {
-  // Helper to safely set text content
   const set = (id, val) => {
     const el = document.getElementById(id);
     if (el) el.innerText = val;
@@ -43,17 +49,17 @@ function updateUI(data) {
   // 遇见明石概率
   set("akashi-prob-card", formatPercent(data.avg_akashi_probability) + "%");
 
-  // 循环效率（后端已计算: 净赚体力 / 出击消耗）
+  // 循环效率
   set("cycle-efficiency", formatPercent(data.cycle_efficiency) + "%");
 
-  // 平均体力（后端已计算: 总获取体力 / 总遇见明石次数）
+  // 平均体力
   const avgStaminaDisplay =
     data.total_akashi_encounters > 0 && data.avg_stamina !== undefined
-      ? data.avg_stamina.toFixed(1)
+      ? data.avg_stamina.toFixed(5)
       : "-";
   set("avg-stamina-card", avgStaminaDisplay);
 
-  // 净赚体力（后端已计算: 总获取体力 - 总战斗轮次 × 5）
+  // 净赚体力
   const netStaminaDisplay = data.net_stamina_gain !== undefined
     ? Math.round(data.net_stamina_gain)
     : 0;
@@ -113,8 +119,5 @@ function renderDashboard() {
 // 页面加载完成后执行
 document.addEventListener("DOMContentLoaded", () => {
   renderDashboard();
-  loadData();
-
-  // 每 60 秒刷新一次数据
-  setInterval(loadData, 60000);
+  connectSSE();
 });

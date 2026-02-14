@@ -4,8 +4,11 @@ import (
 	"alas-cloud/internal/database"
 	"alas-cloud/internal/middleware"
 	"alas-cloud/internal/models"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -82,8 +85,8 @@ func SubmitTelemetry(c *gin.Context) {
 	})
 }
 
-// GetTelemetryStats 获取聚合统计
-func GetTelemetryStats(c *gin.Context) {
+// buildStatsResponse 构建统计数据响应（复用于 REST 和 SSE）
+func buildStatsResponse() gin.H {
 	type Result struct {
 		TotalDevices          int64   `json:"total_devices"`
 		TotalBattleCount      int64   `json:"total_battle_count"`
@@ -126,7 +129,7 @@ func GetTelemetryStats(c *gin.Context) {
 		cycleEfficiency = netStaminaGain / float64(res.TotalSortieCost)
 	}
 
-	response := gin.H{
+	return gin.H{
 		"total_devices":           res.TotalDevices,
 		"total_battle_count":      res.TotalBattleCount,
 		"total_battle_rounds":     res.TotalBattleRounds,
@@ -138,6 +141,42 @@ func GetTelemetryStats(c *gin.Context) {
 		"net_stamina_gain":        netStaminaGain,
 		"cycle_efficiency":        cycleEfficiency,
 	}
+}
 
-	c.JSON(http.StatusOK, response)
+// GetTelemetryStats 获取聚合统计（REST，保留兼容）
+func GetTelemetryStats(c *gin.Context) {
+	c.JSON(http.StatusOK, buildStatsResponse())
+}
+
+// StreamTelemetryStats SSE 实时推送统计数据
+func StreamTelemetryStats(c *gin.Context) {
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("X-Accel-Buffering", "no") // nginx 禁用缓冲
+
+	clientGone := c.Request.Context().Done()
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	// 立即发送一次
+	sendSSEEvent(c, buildStatsResponse())
+
+	for {
+		select {
+		case <-clientGone:
+			return
+		case <-ticker.C:
+			sendSSEEvent(c, buildStatsResponse())
+		}
+	}
+}
+
+func sendSSEEvent(c *gin.Context, data gin.H) {
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return
+	}
+	fmt.Fprintf(c.Writer, "data: %s\n\n", jsonData)
+	c.Writer.Flush()
 }
