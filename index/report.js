@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function fetchSuspects() {
     const list = document.getElementById('suspects-list');
+    const token = localStorage.getItem('alas_admin_token');
     try {
         const res = await fetch(`${API_BASE}/reports`);
         const data = await res.json();
@@ -19,28 +20,42 @@ async function fetchSuspects() {
             return;
         }
 
-        list.innerHTML = data.map(user => `
-            <div class="suspect-card">
-                <div class="suspect-header">
-                    <div>
-                        <div class="suspect-name">${escapeHtml(user.username)}</div>
-                        <span class="suspect-id">${user.target_id}</span>
-                    </div>
-                    <div class="report-count-badge">
-                        ${user.report_count} / 5
-                    </div>
-                </div>
-                
-                <div class="reason-box">
-                    <strong>Latest Report:</strong><br>
-                    "${escapeHtml(user.latest_reason)}"
-                </div>
+        list.innerHTML = data.map(user => {
+            let adminBtns = '';
+            if (token) {
+                adminBtns = `
+                    <button class="vote-btn" style="background: rgba(255, 71, 87, 0.4); border-color: #ff4757; color: white;" onclick="executeDirectBan('${user.target_id}')">
+                        🔨 直接下传 / Direct Ban
+                    </button>
+                `;
+            }
 
-                <button class="vote-btn" onclick="votePunish('${user.target_id}')">
-                    💀 投票封禁 / Vote to Ban
-                </button>
-            </div>
-        `).join('');
+            return `
+                <div class="suspect-card">
+                    <div class="suspect-header">
+                        <div>
+                            <div class="suspect-name">${escapeHtml(user.username)}</div>
+                            <span class="suspect-id">${user.target_id}</span>
+                        </div>
+                        <div class="report-count-badge">
+                            ${user.report_count} / 5
+                        </div>
+                    </div>
+                    
+                    <div class="reason-box">
+                        <strong>Latest Report:</strong><br>
+                        "${escapeHtml(user.latest_reason)}"
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                        <button class="vote-btn" onclick="votePunish('${user.target_id}')">
+                            💀 投票封禁 / Vote to Ban
+                        </button>
+                        ${adminBtns}
+                    </div>
+                </div>
+            `;
+        }).join('');
     } catch (e) {
         console.error(e);
         list.innerHTML = '<div style="text-align: center; color: #ff6b81;">Failed to load suspects.</div>';
@@ -49,27 +64,41 @@ async function fetchSuspects() {
 
 async function fetchBanned() {
     const tbody = document.getElementById('banned-list');
+    const token = localStorage.getItem('alas_admin_token');
     try {
         const res = await fetch(`${API_BASE}/bans`);
         const data = await res.json();
 
         if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="empty-state" style="border:none;">没有封禁记录 / No banned users.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-state" style="border:none;">没有封禁记录 / No banned users.</td></tr>';
             return;
         }
 
-        tbody.innerHTML = data.map(user => `
-            <tr>
-                <td>${user.device_id}</td>
-                <td>${escapeHtml(user.username)}</td>
-                <td>${maskIP(user.ip_address)}</td>
-                <td>${escapeHtml(user.reason)}</td>
-                <td>${new Date(user.banned_at).toLocaleString()}</td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = data.map(user => {
+            let adminCell = '';
+            if (token) {
+                adminCell = `
+                    <td>
+                        <button class="btn" style="height: 2rem; font-size: 0.75rem; background: #10b981; border: none;" onclick="executeUnban('${user.device_id}')">
+                            解封 / Unban
+                        </button>
+                    </td>
+                `;
+            }
+            return `
+                <tr>
+                    <td>${user.device_id}</td>
+                    <td>${escapeHtml(user.username)}</td>
+                    <td>${maskIP(user.ip_address)}</td>
+                    <td>${escapeHtml(user.reason)}</td>
+                    <td>${new Date(user.banned_at).toLocaleString()}</td>
+                    ${adminCell}
+                </tr>
+            `;
+        }).join('');
     } catch (e) {
         console.error(e);
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">Failed to load blacklist.</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="${token ? 6 : 5}" style="text-align: center; color: red;">Failed to load blacklist.</td></tr>`;
     }
 }
 
@@ -149,20 +178,12 @@ function logout() {
     checkLogin();
 }
 
-async function directBanUser() {
-    const targetId = document.getElementById('ban-id').value.trim();
-    const reason = document.getElementById('ban-reason').value.trim();
-    const msg = document.getElementById('admin-msg');
+// Unified Execution Functions
+async function executeDirectBan(targetId, reason = "Admin shortcut") {
     const token = localStorage.getItem('alas_admin_token');
-
     if (!token) {
         alert("Session expired. Please login again.");
         logout();
-        return;
-    }
-
-    if (!targetId) {
-        alert('请输入 Device ID');
         return;
     }
 
@@ -183,42 +204,31 @@ async function directBanUser() {
         const json = await res.json();
 
         if (res.ok) {
-            msg.style.color = '#ff4757';
-            msg.textContent = 'User BANNED successfully.';
+            alert('User BANNED successfully.');
             fetchBanned();
             fetchSuspects();
-            document.getElementById('ban-id').value = '';
-            document.getElementById('ban-reason').value = '';
         } else {
             if (res.status === 401) {
                 logout();
                 alert("Session expired");
                 return;
             }
-            msg.style.color = 'red';
-            msg.textContent = 'Error: ' + json.error;
+            alert('Error: ' + (json.error || 'Unknown error'));
         }
     } catch (e) {
-        msg.style.color = 'red';
-        msg.textContent = 'Error: ' + e.message;
+        alert('Error: ' + e.message);
     }
 }
 
-async function unbanUser() {
-    const targetId = document.getElementById('unban-id').value.trim();
-    const msg = document.getElementById('admin-msg');
+async function executeUnban(targetId) {
     const token = localStorage.getItem('alas_admin_token');
-
     if (!token) {
         alert("Session expired. Please login again.");
         logout();
         return;
     }
 
-    if (!targetId) {
-        alert('请输入 Device ID');
-        return;
-    }
+    if (!confirm(`Are you sure you want to UNBAN user ${targetId}?`)) return;
 
     try {
         const res = await fetch(`${API_BASE}/admin/unban`, {
@@ -234,23 +244,42 @@ async function unbanUser() {
         const json = await res.json();
 
         if (res.ok) {
-            msg.style.color = '#2ed573';
-            msg.textContent = 'User unbanned successfully.';
+            alert('User unbanned successfully.');
             fetchBanned();
-            document.getElementById('unban-id').value = '';
         } else {
             if (res.status === 401) {
                 logout();
                 alert("Session expired");
                 return;
             }
-            msg.style.color = 'red';
-            msg.textContent = 'Error: ' + json.error;
+            alert('Error: ' + (json.error || 'Unknown error'));
         }
     } catch (e) {
-        msg.style.color = 'red';
-        msg.textContent = 'Error: ' + e.message;
+        alert('Error: ' + e.message);
     }
+}
+
+// Manual Form Wrappers
+async function directBanUser() {
+    const targetId = document.getElementById('ban-id').value.trim();
+    const reason = document.getElementById('ban-reason').value.trim();
+    if (!targetId) {
+        alert('请输入 Device ID');
+        return;
+    }
+    await executeDirectBan(targetId, reason);
+    document.getElementById('ban-id').value = '';
+    document.getElementById('ban-reason').value = '';
+}
+
+async function unbanUser() {
+    const targetId = document.getElementById('unban-id').value.trim();
+    if (!targetId) {
+        alert('请输入 Device ID');
+        return;
+    }
+    await executeUnban(targetId);
+    document.getElementById('unban-id').value = '';
 }
 
 function escapeHtml(text) {
