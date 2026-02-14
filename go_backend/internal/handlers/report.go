@@ -3,11 +3,28 @@ package handlers
 import (
 	"alas-cloud/internal/database"
 	"alas-cloud/internal/models"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+// resolveFullDeviceID 将截断的 device_id 解析为完整的 device_id
+// 前端排行榜只显示前 8 位，所以举报/封禁传入的可能是部分 ID
+func resolveFullDeviceID(partialID string) string {
+	var fullID string
+	err := database.DB.Table("telemetry_data").
+		Select("device_id").
+		Where("device_id LIKE ?", partialID+"%").
+		Limit(1).
+		Row().Scan(&fullID)
+	if err != nil {
+		// 如果找不到，返回原始值（可能本身就是完整 ID）
+		return partialID
+	}
+	return fullID
+}
 
 // ReportUserRequest 举报请求
 type ReportUserRequest struct {
@@ -23,18 +40,16 @@ func ReportUser(c *gin.Context) {
 		return
 	}
 
-	// 获取举报人标识 (可以是 DeviceID 也可以是 IP，这里优先用 IP 防止刷票，或者结合 DeviceID)
-	// 为了简单且有效，使用 ClientIP 作为主要判断依据，防止同一 IP 刷票。
-	// 但如果前端能传 DeviceID 更好。这里假设 API 调用者是受信任的客户端，
-	// 实际场景中，应该从 Context 中获取认证信息。
-	// 由于目前没有严格的鉴权，我们使用 IP + UserAgent 生成一个指纹，或者简单点，直接用 IP。
-	// 还可以要求请求头带上 reporter_device_id
+	// 解析完整 DeviceID (前端传来的可能是截断的前 8 位)
+	fullTargetID := resolveFullDeviceID(req.TargetID)
+	log.Printf("[REPORT] Resolved target_id: %s -> %s", req.TargetID, fullTargetID)
+
 	reporterID := c.ClientIP()
-	
-	// 检查是否已经举报过
+
+	// 检查是否已经举报过 (用完整 ID 检查)
 	var count int64
 	database.DB.Model(&models.Report{}).
-		Where("target_id = ? AND reporter_id = ?", req.TargetID, reporterID).
+		Where("target_id = ? AND reporter_id = ?", fullTargetID, reporterID).
 		Count(&count)
 
 	if count > 0 {
@@ -42,9 +57,9 @@ func ReportUser(c *gin.Context) {
 		return
 	}
 
-	// 创建举报记录
+	// 创建举报记录 (存储完整 ID)
 	report := models.Report{
-		TargetID:   req.TargetID,
+		TargetID:   fullTargetID,
 		ReporterID: reporterID,
 		Reason:     req.Reason,
 	}
@@ -56,15 +71,12 @@ func ReportUser(c *gin.Context) {
 
 	// 检查是否达到封禁阈值 (5票)
 	var totalReports int64
-	database.DB.Model(&models.Report{}).Where("target_id = ?", req.TargetID).Count(&totalReports)
+	database.DB.Model(&models.Report{}).Where("target_id = ?", fullTargetID).Count(&totalReports)
 
 	if totalReports > 5 {
-		// 触发封禁
-		if err := banUser(req.TargetID, "System: Automatic ban due to excessive reports"); err != nil {
-			// 记录错误但不需要告诉前端失败，因为举报本身成功了
-			// 实际生产中应该打 Log
+		if err := banUser(fullTargetID, "System: Automatic ban due to excessive reports"); err != nil {
 			c.JSON(http.StatusOK, gin.H{
-				"status": "success", 
+				"status":  "success",
 				"message": "Report submitted. User has been banned due to excessive reports.",
 			})
 			return
@@ -76,27 +88,28 @@ func ReportUser(c *gin.Context) {
 
 // banUser 执行封禁逻辑 (事务)
 func banUser(targetID, reason string) error {
+	// 确保使用完整 ID
+	fullID := resolveFullDeviceID(targetID)
+	log.Printf("[BAN] Banning user: input=%s, resolved=%s", targetID, fullID)
+
 	return database.DB.Transaction(func(tx *gorm.DB) error {
 		// 1. 获取用户信息 (为了获取 IP 和 Username)
 		var telem models.TelemetryData
 		var profile models.UserProfile
-		
-		// 尝试获取最新的一条遥测数据以获取 IP
-		tx.Where("device_id = ?", targetID).Order("updated_at desc").First(&telem)
-		
-		// 尝试获取用户资料
-		tx.Where("device_id = ?", targetID).First(&profile)
+
+		tx.Where("device_id = ?", fullID).Order("updated_at desc").First(&telem)
+		tx.Where("device_id = ?", fullID).First(&profile)
 
 		username := profile.Username
 		if username == "" {
-			username = targetID // fallback
+			username = fullID
 		}
-		
-		ip := telem.IPAddress // 可能是空，如果没有遥测数据
 
-		// 2. 创建封禁记录
+		ip := telem.IPAddress
+
+		// 2. 创建封禁记录 (存储完整 ID)
 		bannedUser := models.BannedUser{
-			DeviceID:  targetID,
+			DeviceID:  fullID,
 			IPAddress: ip,
 			Username:  username,
 			Reason:    reason,
@@ -105,18 +118,24 @@ func banUser(targetID, reason string) error {
 			return err
 		}
 
-		// 3. 删除用户数据
-		if err := tx.Where("device_id = ?", targetID).Delete(&models.UserProfile{}).Error; err != nil {
-			return err
-		}
-		if err := tx.Where("device_id = ?", targetID).Delete(&models.TelemetryData{}).Error; err != nil {
-			return err
+		// 3. 删除用户数据 (使用原生 SQL 确保删除所有匹配行)
+		if result := tx.Exec("DELETE FROM user_profiles WHERE device_id = ?", fullID); result.Error != nil {
+			return result.Error
+		} else {
+			log.Printf("[BAN] Deleted %d rows from user_profiles for device_id=%s", result.RowsAffected, fullID)
 		}
 
-		// 4. (可选) 删除举报记录，或者保留作为历史
-		// 为了保持表干净，这里选择删除
-		if err := tx.Where("target_id = ?", targetID).Delete(&models.Report{}).Error; err != nil {
-			return err
+		if result := tx.Exec("DELETE FROM telemetry_data WHERE device_id = ?", fullID); result.Error != nil {
+			return result.Error
+		} else {
+			log.Printf("[BAN] Deleted %d rows from telemetry_data for device_id=%s", result.RowsAffected, fullID)
+		}
+
+		// 4. 删除举报记录
+		if result := tx.Exec("DELETE FROM reports WHERE target_id = ?", fullID); result.Error != nil {
+			return result.Error
+		} else {
+			log.Printf("[BAN] Deleted %d rows from reports for target_id=%s", result.RowsAffected, fullID)
 		}
 
 		return nil
@@ -125,9 +144,9 @@ func banUser(targetID, reason string) error {
 
 // GetReportedUsersResponse 响应结构
 type GetReportedUsersResponse struct {
-	TargetID    string `json:"target_id"`
-	Username    string `json:"username"`
-	ReportCount int64  `json:"report_count"`
+	TargetID     string `json:"target_id"`
+	Username     string `json:"username"`
+	ReportCount  int64  `json:"report_count"`
 	LatestReason string `json:"latest_reason"`
 }
 
@@ -135,8 +154,6 @@ type GetReportedUsersResponse struct {
 func GetReportedUsers(c *gin.Context) {
 	var results []GetReportedUsersResponse
 
-	// 使用原生 SQL 或 GORM 聚合查询
-	// 选出 reports 表中 target_id，count(*)，以及 join user_profiles 获取 username
 	err := database.DB.Table("reports").
 		Select("reports.target_id, count(reports.id) as report_count, MAX(reports.reason) as latest_reason, COALESCE(user_profiles.username, 'Unknown') as username").
 		Joins("LEFT JOIN user_profiles ON user_profiles.device_id = reports.target_id").
@@ -174,9 +191,17 @@ func UnbanUser(c *gin.Context) {
 		return
 	}
 
-	// 执行解封
-	if err := database.DB.Where("device_id = ?", req.TargetID).Delete(&models.BannedUser{}).Error; err != nil {
+	// 执行解封 (banned_users 中已经存储了完整 ID，直接精确匹配)
+	result := database.DB.Exec("DELETE FROM banned_users WHERE device_id = ?", req.TargetID)
+	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unban user"})
+		return
+	}
+
+	log.Printf("[UNBAN] Deleted %d rows from banned_users for device_id=%s", result.RowsAffected, req.TargetID)
+
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found in ban list"})
 		return
 	}
 
@@ -202,7 +227,7 @@ func DirectBanUser(c *gin.Context) {
 		reason = "Admin: Manual ban"
 	}
 
-	// 执行封禁
+	// 执行封禁 (banUser 内部会自动解析完整 ID)
 	if err := banUser(req.TargetID, reason); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to ban user: " + err.Error()})
 		return
