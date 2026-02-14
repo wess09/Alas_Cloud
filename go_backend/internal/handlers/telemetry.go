@@ -90,25 +90,40 @@ func GetTelemetryStats(c *gin.Context) {
 		TotalBattleRounds     int64   `json:"total_battle_rounds"`
 		TotalSortieCost       int64   `json:"total_sortie_cost"`
 		TotalAkashiEncounters int64   `json:"total_akashi_encounters"`
-		AvgStamina            float64 `json:"avg_stamina"`
-		TotalNetStaminaGain   int64   `json:"total_net_stamina_gain"`
+		TotalStaminaGain      float64 `json:"total_stamina_gain"`
 	}
 
 	var res Result
 	// GORM 聚合查询
+	// 总获取体力 = Σ(遇见明石次数_i × 平均获取体力_i)
 	database.DB.Model(&models.TelemetryData{}).Select(
 		"count(id) as total_devices",
 		"sum(battle_count) as total_battle_count",
 		"sum(battle_rounds) as total_battle_rounds",
 		"sum(sortie_cost) as total_sortie_cost",
 		"sum(akashi_encounters) as total_akashi_encounters",
-		"avg(average_stamina) as avg_stamina",
-		"sum(net_stamina_gain) as total_net_stamina_gain",
+		"sum(akashi_encounters * average_stamina) as total_stamina_gain",
 	).Scan(&res)
 
+	// 遇见明石概率 = 总遇见明石次数 / 总战斗轮次
 	avgAkashiProbability := 0.0
 	if res.TotalBattleRounds > 0 {
 		avgAkashiProbability = float64(res.TotalAkashiEncounters) / float64(res.TotalBattleRounds)
+	}
+
+	// 平均体力 = 总获取体力 / 总遇见明石次数
+	avgStamina := 0.0
+	if res.TotalAkashiEncounters > 0 {
+		avgStamina = res.TotalStaminaGain / float64(res.TotalAkashiEncounters)
+	}
+
+	// 净赚体力 = 总获取体力 - 总战斗轮次 × 5（侵蚀一）
+	netStaminaGain := res.TotalStaminaGain - float64(res.TotalBattleRounds)*5
+
+	// 循环效率 = 净赚体力 / 出击消耗
+	cycleEfficiency := 0.0
+	if res.TotalSortieCost > 0 {
+		cycleEfficiency = netStaminaGain / float64(res.TotalSortieCost)
 	}
 
 	response := gin.H{
@@ -118,8 +133,10 @@ func GetTelemetryStats(c *gin.Context) {
 		"total_sortie_cost":       res.TotalSortieCost,
 		"total_akashi_encounters": res.TotalAkashiEncounters,
 		"avg_akashi_probability":  avgAkashiProbability,
-		"avg_stamina":             res.AvgStamina,
-		"total_net_stamina_gain":  res.TotalNetStaminaGain,
+		"avg_stamina":             avgStamina,
+		"total_stamina_gain":      res.TotalStaminaGain,
+		"net_stamina_gain":        netStaminaGain,
+		"cycle_efficiency":        cycleEfficiency,
 	}
 
 	c.JSON(http.StatusOK, response)

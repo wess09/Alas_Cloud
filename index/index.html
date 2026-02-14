@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alas Telemetry | Command Center</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+    rel="stylesheet" />
+</head>
+
+<body>
+  <div class="ambient-light">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <span class="icon">📊</span>
+        <h1>Alas Telemetry</h1>
+      </div>
+      <p class="subtitle">Global Commander Statistics</p>
+    </header>
+    <div class="stats-grid" id="stats-grid">
+    </div>
+    <div class="card details-card">
+      <div class="details-header">
+        <h3>详细统计数据 / Detailed Statistics</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>战斗场次</th>
+              <th>战斗轮次</th>
+              <th>出击消耗</th>
+              <th>遇见明石次数</th>
+              <th>遇见明石概率</th>
+              <th>平均体力</th>
+              <th>净赚体力</th>
+              <th>循环效率</th>
+            </tr>
+          </thead>
+          <tbody id="details-table-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer>
+      <p>
+        数据由 Alas Cloud API 提供</p>
+    </footer>
+  </div>
+  <script src="script.js?v=2"></script>
+</body>
+
+</html>
