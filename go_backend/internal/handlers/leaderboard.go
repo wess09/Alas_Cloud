@@ -13,7 +13,7 @@ import (
 type LeaderboardEntry struct {
 	DeviceID         string  `json:"device_id"`
 	Username         string  `json:"username"`
-	BattleCount      int     `json:"battle_count"`
+	BattleRounds     int     `json:"battle_rounds"`
 	NetStaminaGain   int     `json:"net_stamina_gain"`
 	AkashiEncounters int     `json:"akashi_encounters"`
 	LastActive       string  `json:"last_active"` // 最近一次上传数据的时间
@@ -36,8 +36,8 @@ func GetLeaderboard(c *gin.Context) {
 	offset := (page - 1) * size
 
 	// 排序逻辑
-	orderBy := "battle_count DESC" // 默认
-	sortType := c.DefaultQuery("sort", "count") // 默认改为 count
+	orderBy := "battle_rounds DESC" // 默认
+	sortType := c.DefaultQuery("sort", "rounds") // 默认改为 rounds
 	if sortType == "stamina" {
 		orderBy = "net_stamina_gain DESC"
 	}
@@ -51,10 +51,10 @@ func GetLeaderboard(c *gin.Context) {
 	err := database.DB.Table("telemetry_data").
 		Select("SUBSTR(telemetry_data.device_id, 1, 8) as device_id, "+
 			"COALESCE(user_profiles.username, '') as username, "+
-			"SUM(telemetry_data.battle_count) as battle_count, "+
+			"SUM(telemetry_data.battle_rounds) as battle_rounds, "+
 			"SUM(telemetry_data.net_stamina_gain) as net_stamina_gain, "+
 			"SUM(telemetry_data.akashi_encounters) as akashi_encounters, "+
-			"MAX(telemetry_data.created_at) as last_active").
+			"MAX(telemetry_data.updated_at) as last_active").
 		Joins("LEFT JOIN user_profiles ON user_profiles.device_id = telemetry_data.device_id").
 		Group("telemetry_data.device_id").
 		Order(orderBy).

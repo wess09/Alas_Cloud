@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Alas Telemetry | Leaderboard</title>
+    <title>Alas 数据统计 | 排行榜</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <link rel="stylesheet" href="style.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -137,11 +137,11 @@
     <div class="container">
         <header>
             <div style="position: absolute; left: 0; top: 0;">
-                <a href="index.html" class="nav-link">← Back to Dashboard</a>
+                <a href="index.html" class="nav-link">← 返回仪表盘</a>
             </div>
             <div class="logo">
                 <span class="icon">🏆</span>
-                <h1>Commander Leaderboard</h1>
+                <h1>指挥官排行榜</h1>
             </div>
             <p class="subtitle">Hall of Fame</p>
         </header>
@@ -149,36 +149,35 @@
         <!-- Profile Management -->
         <div class="card" style="margin-bottom: 3rem; overflow: visible;">
             <div class="details-header">
-                <h3>Update Profile / 更新信息</h3>
+                <h3>更新个人信息</h3>
             </div>
             <div style="padding: 1.5rem;">
                 <div class="user-form">
                     <div class="input-group">
                         <label>Device ID / 设备 ID</label>
-                        <input type="text" id="device-id" placeholder="Enter your 32-64 char hash" />
+                        <input type="text" id="device-id" placeholder="" />
                     </div>
                     <div class="input-group">
-                        <label>Username / 用于排行榜显示的昵称</label>
-                        <input type="text" id="username" placeholder="Anonymous Commander" />
+                        <label>Username / 昵称</label>
+                        <input type="text" id="username" placeholder="输入您想展示的昵称" />
                     </div>
-                    <!-- Auto-Gen button removed as requested -->
                     <button class="btn" onclick="updateProfile()">
-                        Save / 保存
+                        保存 / Save
                     </button>
                 </div>
                 <p id="form-message" style="margin-top: 1rem; min-height: 1.5em;"></p>
                 <p style="font-size: 0.8em; color: var(--text-secondary); margin-top: 0.5rem;">
-                    * Default usernames are generated automatically based on your location. <br>
-                    * 默认昵称会根据您的位置自动生成 (例如：来自东京的猫娘小萝莉)。
+                    * 默认昵称会根据您的 IP 位置自动生成 (例如：来自东京的猫娘小萝莉)，这大约需要几分钟。<br>
+                    * 您可以手动输入设备 ID 来覆盖默认昵称。
                 </p>
             </div>
         </div>
 
         <!-- Sorting Tabs -->
         <div style="margin-bottom: 1.5rem; display: flex; justify-content: center; gap: 1rem;">
-            <button id="tab-rounds" class="btn" onclick="switchTab('rounds')">⚔️ Combat Rounds (战斗轮次)</button>
-            <button id="tab-stamina" class="btn btn-secondary" onclick="switchTab('stamina')">⚡ Net Stamina
-                (净赚体力)</button>
+            <button id="tab-rounds" class="btn" onclick="switchTab('rounds')">⚔️ 战斗轮次 (Battle Rounds)</button>
+            <button id="tab-stamina" class="btn btn-secondary" onclick="switchTab('stamina')">⚡ 净赚体力 (Net
+                Stamina)</button>
         </div>
 
         <!-- Leaderboard Table -->
@@ -187,12 +186,12 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th style="width: 80px;">Rank</th>
-                            <th>Username</th>
-                            <th id="col-rounds" class="highlight">Battle Rounds</th>
-                            <th id="col-stamina">Net Stamina Gain</th>
-                            <th>Akashi Encounters</th>
-                            <th>Last Active</th>
+                            <th style="width: 80px;">排名</th>
+                            <th>指挥官</th>
+                            <th id="col-rounds" class="highlight">战斗轮次</th>
+                            <th id="col-stamina">净赚体力</th>
+                            <th>明石遭遇</th>
+                            <th>最近活跃</th>
                         </tr>
                     </thead>
                     <tbody id="leaderboard-body">
@@ -203,17 +202,17 @@
         </div>
 
         <div class="pagination">
-            <button id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
-            <span id="page-indicator" style="display: flex; align-items: center; color: var(--text-secondary);">Page
-                1</span>
-            <button id="next-btn" onclick="changePage(1)">Next</button>
+            <button id="prev-btn" onclick="changePage(-1)" disabled>上一页</button>
+            <span id="page-indicator" style="display: flex; align-items: center; color: var(--text-secondary);">第 1
+                页</span>
+            <button id="next-btn" onclick="changePage(1)">下一页</button>
         </div>
 
         <footer>
-            <p>Data provided by Alas Cloud API</p>
+            <p>数据由 Alas Cloud API 提供</p>
         </footer>
     </div>
-    <script src="leaderboard.js?v=2"></script>
+    <script src="leaderboard.js?v=3"></script>
 </body>
 
 </html>

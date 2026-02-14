@@ -139,13 +139,17 @@ func buildStatsResponse() gin.H {
 	}
 
 	var res Result
-	database.DB.Model(&models.TelemetryData{}).Select(
-		"count(id) as total_devices",
-		"sum(battle_count) as total_battle_count",
-		"sum(battle_rounds) as total_battle_rounds",
-		"sum(akashi_encounters) as total_akashi_encounters",
-		"sum(akashi_encounters * average_stamina) as total_stamina_gain",
-	).Scan(&res)
+	// Dashboard 仅统计最近 24 小时的活跃数据
+	cutoff := time.Now().Add(-24 * time.Hour)
+	database.DB.Model(&models.TelemetryData{}).
+		Where("updated_at > ?", cutoff).
+		Select(
+			"count(id) as total_devices",
+			"sum(battle_count) as total_battle_count",
+			"sum(battle_rounds) as total_battle_rounds",
+			"sum(akashi_encounters) as total_akashi_encounters",
+			"sum(akashi_encounters * average_stamina) as total_stamina_gain",
+		).Scan(&res)
 
 	// 出击消耗 = 总战斗轮次 × 5（侵蚀一）
 	totalSortieCost := res.TotalBattleRounds * 5
