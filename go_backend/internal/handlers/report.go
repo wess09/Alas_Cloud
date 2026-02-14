@@ -3,8 +3,10 @@ package handlers
 import (
 	"alas-cloud/internal/database"
 	"alas-cloud/internal/models"
+	"alas-cloud/internal/utils"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -44,15 +46,28 @@ func ReportUser(c *gin.Context) {
 	fullTargetID := resolveFullDeviceID(req.TargetID)
 	log.Printf("[REPORT] Resolved target_id: %s -> %s", req.TargetID, fullTargetID)
 
+	// Check if reporter is Admin (One Vote Veto)
+	isAdmin := false
+	authHeader := c.GetHeader("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+		if _, err := utils.ParseToken(tokenStr); err == nil {
+			isAdmin = true
+		}
+	}
+
 	reporterID := c.ClientIP()
 
 	// 检查是否已经举报过 (用完整 ID 检查)
+	// 如果是管理员，允许重复举报（或者直接忽略此检查进入封禁流程？）
+	// 为了简单，我们仍然检查数据库，但如果管理员想强制封禁，通常会用 Direct Ban
+	// 这里的一票否决更多是方便管理员在排行榜上顺手点一下
 	var count int64
 	database.DB.Model(&models.Report{}).
 		Where("target_id = ? AND reporter_id = ?", fullTargetID, reporterID).
 		Count(&count)
 
-	if count > 0 {
+	if count > 0 && !isAdmin {
 		c.JSON(http.StatusConflict, gin.H{"error": "You have already reported this user."})
 		return
 	}
@@ -64,20 +79,27 @@ func ReportUser(c *gin.Context) {
 		Reason:     req.Reason,
 	}
 
+	// 如果管理员重复举报，可能导致主键冲突或者无意义数据，这里 `Create` 应该没问题(除非有唯一索引)
+	// UserProfile/Telemetry 都没有唯一索引限制 target_id+reporter_id
 	if err := database.DB.Create(&report).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit report"})
-		return
+		// 忽略重复创建错误
+		log.Printf("Failed to create report record: %v", err)
 	}
 
-	// 检查是否达到封禁阈值 (5票)
+	// 检查是否达到封禁阈值 (5票) 或 管理员
 	var totalReports int64
 	database.DB.Model(&models.Report{}).Where("target_id = ?", fullTargetID).Count(&totalReports)
 
-	if totalReports > 5 {
-		if err := banUser(fullTargetID, "System: Automatic ban due to excessive reports"); err != nil {
+	if totalReports > 5 || isAdmin {
+		reason := "System: Automatic ban due to excessive reports"
+		if isAdmin {
+			reason = "Admin: Immediate ban via report (One Vote Veto)"
+		}
+
+		if err := banUser(fullTargetID, reason); err != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"status":  "success",
-				"message": "Report submitted. User has been banned due to excessive reports.",
+				"message": "Report submitted. User has been banned.",
 			})
 			return
 		}
@@ -245,4 +267,63 @@ func DirectBanUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "User banned successfully"})
+}
+
+// DismissRequest 撤销举报/清空举报请求 (管理员)
+type DismissRequest struct {
+	TargetID string `json:"target_id" binding:"required"`
+}
+
+// DismissReport 管理员一票否决：驳回举报（清空对该用户的所有举报）
+func DismissReport(c *gin.Context) {
+	var req DismissRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	fullID := resolveFullDeviceID(req.TargetID)
+
+	// Admin only: Delete all reports for this target
+	// 使用原生 SQL 删除
+	result := database.DB.Exec("DELETE FROM reports WHERE target_id = ?", fullID)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to dismiss reports"})
+		return
+	}
+
+	log.Printf("[DISMISS] Admin dismissed %d reports for target %s", result.RowsAffected, fullID)
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Reports dismissed"})
+}
+
+// UndoReportRequest 用户撤销自己的举报
+type UndoReportRequest struct {
+	TargetID string `json:"target_id" binding:"required"`
+}
+
+// UndoReport 用户撤销自己的举报
+func UndoReport(c *gin.Context) {
+	var req UndoReportRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	fullID := resolveFullDeviceID(req.TargetID)
+	reporterID := c.ClientIP()
+
+	// Delete only reports by this reporter
+	result := database.DB.Exec("DELETE FROM reports WHERE target_id = ? AND reporter_id = ?", fullID, reporterID)
+	
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to undo report"})
+		return
+	}
+
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Report not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Report undone"})
 }

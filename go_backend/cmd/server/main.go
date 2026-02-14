@@ -90,10 +90,14 @@ func main() {
 		admin.DELETE("/announcement/:id", handlers.DeleteAnnouncement)
 		admin.PATCH("/announcement/:id/toggle", handlers.ToggleAnnouncement)
 		
+
 		// User Management
 		admin.POST("/ban", handlers.DirectBanUser)
 		admin.POST("/unban", handlers.UnbanUser)
+		admin.POST("/dismiss", handlers.DismissReport)
 	}
+	
+	r.POST("/api/report/undo", handlers.UndoReport)
 
 	// 静态文件 (前端)
 	if _, err := os.Stat("frontend"); err == nil {

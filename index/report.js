@@ -29,9 +29,14 @@ async function fetchSuspects() {
             let adminBtns = '';
             if (token) {
                 adminBtns = `
-                    <button class="vote-btn" style="background: rgba(255, 71, 87, 0.4); border-color: #ff4757; color: white;" onclick="executeDirectBan('${user.target_id}')">
-                        🔨 直接下传 / Direct Ban
-                    </button>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                        <button class="vote-btn" style="background: rgba(255, 71, 87, 0.4); border-color: #ff4757; color: white;" onclick="executeDirectBan('${user.target_id}')">
+                            🔨 DirecBan
+                        </button>
+                        <button class="vote-btn" style="background: rgba(46, 213, 115, 0.4); border-color: #2ed573; color: white;" onclick="executeDismiss('${user.target_id}')">
+                            🛡️ Dismiss
+                        </button>
+                    </div>
                 `;
             }
 
@@ -127,9 +132,15 @@ async function votePunish(targetId) {
 
     try {
         // Voting is essentially reporting again with a "vote" reason
+        const token = localStorage.getItem('alas_admin_token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const res = await fetch(`${API_BASE}/report`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: headers,
             body: JSON.stringify({
                 target_id: targetId,
                 reason: 'Vote to ban from Court'
@@ -266,6 +277,45 @@ async function executeUnban(targetId) {
         if (res.ok) {
             alert('User unbanned successfully.');
             fetchBanned();
+        } else {
+            if (res.status === 401) {
+                logout();
+                alert("Session expired");
+                return;
+            }
+            alert('Error: ' + (json.error || 'Unknown error'));
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+async function executeDismiss(targetId) {
+    const token = localStorage.getItem('alas_admin_token');
+    if (!token) {
+        alert("Session expired. Please login again.");
+        logout();
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to DISMISS all reports for user ${targetId}?`)) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/admin/dismiss`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                target_id: targetId
+            })
+        });
+        const json = await res.json();
+
+        if (res.ok) {
+            alert('All reports dismissed for user.');
+            fetchSuspects();
         } else {
             if (res.status === 401) {
                 logout();
