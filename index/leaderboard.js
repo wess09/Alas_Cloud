@@ -10,6 +10,17 @@ function formatNumber(num) {
     return new Intl.NumberFormat().format(num);
 }
 
+// Prevent XSS
+function escapeHtml(text) {
+    if (!text) return text;
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 // Update Profile
 async function updateProfile() {
     const deviceId = document.getElementById('device-id').value.trim();
@@ -102,7 +113,7 @@ async function loadLeaderboard(page) {
                 <tr ${rowClass}>
                     <td class="rank-cell">#${rank}</td>
                     <td>
-                        <span style="font-weight:600;">${entry.username || '未知指挥官'}</span>
+                        <span style="font-weight:600;">${escapeHtml(entry.username) || '未知指挥官'}</span>
                         <br><span class="code" style="font-size:0.7em; opacity:0.6;">${entry.device_id.substring(0, 8)}...</span>
                     </td>
                     <td class="${currentSort === 'rounds' ? 'highlight' : ''}">${formatNumber(entry.battle_rounds)}</td>

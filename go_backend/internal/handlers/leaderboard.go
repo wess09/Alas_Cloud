@@ -4,7 +4,9 @@ import (
 	"alas-cloud/internal/database"
 	"alas-cloud/internal/models"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -102,9 +104,21 @@ func UpdateUserProfile(c *gin.Context) {
 	}
 
 	// Upsert UserProfile using Save (which performs upsert based on primary key)
+	// 防止 XSS: 移除 script 标签和危险字符
+	safeUsername := strings.TrimSpace(req.Username)
+	scriptRe := regexp.MustCompile(`(?i)<\s*/?script[^>]*>`)
+	safeUsername = scriptRe.ReplaceAllString(safeUsername, "")
+	dangerChars := strings.NewReplacer("&", "", `"`, "", "'", "", "<", "", ">", "")
+	safeUsername = dangerChars.Replace(safeUsername)
+
+	if safeUsername == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "用户名不能为空或仅包含非法字符"})
+		return
+	}
+
 	profile := models.UserProfile{
 		DeviceID: req.DeviceID,
-		Username: req.Username,
+		Username: safeUsername,
 	}
 
 	if err := database.DB.Save(&profile).Error; err != nil {
