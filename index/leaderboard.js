@@ -2,7 +2,7 @@ const API_BASE_URL = "https://alas.nanoda.work"; // Keep consistent with index/s
 
 let currentPage = 1;
 const pageSize = 50;
-let currentSort = 'count'; // 'count' or 'stamina'
+let currentSort = 'rounds'; // 'rounds' or 'stamina'
 
 // Format numbers
 function formatNumber(num) {
@@ -62,11 +62,11 @@ function switchTab(sortType) {
     currentPage = 1;
 
     // Update UI
-    document.querySelector('#tab-count').className = sortType === 'count' ? 'btn' : 'btn btn-secondary';
+    document.querySelector('#tab-rounds').className = sortType === 'rounds' ? 'btn' : 'btn btn-secondary';
     document.querySelector('#tab-stamina').className = sortType === 'stamina' ? 'btn' : 'btn btn-secondary';
 
     // Highlight Column Header
-    document.querySelector('#col-count').className = sortType === 'count' ? 'highlight' : '';
+    document.querySelector('#col-rounds').className = sortType === 'rounds' ? 'highlight' : '';
     document.querySelector('#col-stamina').className = sortType === 'stamina' ? 'text-success highlight' : '';
 
     loadLeaderboard(currentPage);
@@ -103,9 +103,9 @@ async function loadLeaderboard(page) {
                     <td class="rank-cell">#${rank}</td>
                     <td>
                         <span style="font-weight:600;">${entry.username || '未知指挥官'}</span>
-                        <br><span class="code" style="font-size:0.7em; opacity:0.6;">${entry.device_id}</span>
+                        <br><span class="code" style="font-size:0.7em; opacity:0.6;">${entry.device_id.substring(0, 8)}...</span>
                     </td>
-                    <td class="${currentSort === 'count' ? 'highlight' : ''}">${formatNumber(entry.battle_count)}</td>
+                    <td class="${currentSort === 'rounds' ? 'highlight' : ''}">${formatNumber(entry.battle_rounds)}</td>
                     <td class="text-success ${currentSort === 'stamina' ? 'highlight' : ''}">${(entry.net_stamina_gain >= 0 ? '+' : '') + formatNumber(entry.net_stamina_gain)}</td>
                     <td>${formatNumber(entry.akashi_encounters)}</td>
                     <td style="color:var(--text-secondary); font-size:0.85em;">${dateStr}</td>

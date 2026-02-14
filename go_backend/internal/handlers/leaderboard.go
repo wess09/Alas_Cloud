@@ -52,7 +52,7 @@ func GetLeaderboard(c *gin.Context) {
 		Select("SUBSTR(telemetry_data.device_id, 1, 8) as device_id, "+
 			"COALESCE(user_profiles.username, '') as username, "+
 			"SUM(telemetry_data.battle_rounds) as battle_rounds, "+
-			"SUM(telemetry_data.net_stamina_gain) as net_stamina_gain, "+
+			"(SUM(telemetry_data.net_stamina_gain) - SUM(telemetry_data.battle_rounds * 5)) as net_stamina_gain, "+
 			"SUM(telemetry_data.akashi_encounters) as akashi_encounters, "+
 			"MAX(telemetry_data.updated_at) as last_active").
 		Joins("LEFT JOIN user_profiles ON user_profiles.device_id = telemetry_data.device_id").
