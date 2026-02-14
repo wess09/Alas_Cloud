@@ -2,6 +2,11 @@ const API_BASE = window.location.hostname === 'localhost' || window.location.hos
     ? 'http://localhost:8000/api'
     : '/api';
 
+function formatNumber(num) {
+    if (num === null || num === undefined) return "--";
+    return new Intl.NumberFormat().format(num);
+}
+
 // Fetch data on load
 document.addEventListener('DOMContentLoaded', () => {
     fetchSuspects();

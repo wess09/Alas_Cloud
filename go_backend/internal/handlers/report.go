@@ -157,19 +157,17 @@ type GetReportedUsersResponse struct {
 func GetReportedUsers(c *gin.Context) {
 	var results []GetReportedUsersResponse
 
-	// 联合查询: reports + user_profiles + telemetry_data 聚合统计
+	// 使用子查询避免 JOIN 笛卡尔积导致数据膨胀，与排行榜逻辑一致
 	err := database.DB.Table("reports").
 		Select(
 			"reports.target_id, "+
-			"count(DISTINCT reports.id) as report_count, "+
+			"count(reports.id) as report_count, "+
 			"MAX(reports.reason) as latest_reason, "+
-			"COALESCE(user_profiles.username, 'Unknown') as username, "+
-			"COALESCE(SUM(telemetry_data.battle_rounds), 0) as battle_rounds, "+
-			"COALESCE((SUM(telemetry_data.net_stamina_gain) - SUM(telemetry_data.battle_rounds * 5)), 0) as net_stamina_gain, "+
-			"COALESCE(SUM(telemetry_data.akashi_encounters), 0) as akashi_encounters",
+			"COALESCE((SELECT username FROM user_profiles WHERE device_id = reports.target_id), 'Unknown') as username, "+
+			"COALESCE((SELECT SUM(battle_rounds) FROM telemetry_data WHERE device_id = reports.target_id), 0) as battle_rounds, "+
+			"COALESCE((SELECT SUM(net_stamina_gain) - SUM(battle_rounds * 5) FROM telemetry_data WHERE device_id = reports.target_id), 0) as net_stamina_gain, "+
+			"COALESCE((SELECT SUM(akashi_encounters) FROM telemetry_data WHERE device_id = reports.target_id), 0) as akashi_encounters",
 		).
-		Joins("LEFT JOIN user_profiles ON user_profiles.device_id = reports.target_id").
-		Joins("LEFT JOIN telemetry_data ON telemetry_data.device_id = reports.target_id").
 		Group("reports.target_id").
 		Scan(&results).Error
 
