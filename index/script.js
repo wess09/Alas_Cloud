@@ -11,6 +11,60 @@ function formatPercent(num) {
   if (num === null || num === undefined) return "--";
   return (num * 100).toFixed(2);
 }
+// ---- 数字滚动动画 ----
+
+// 存储每个元素的当前数值和动画帧
+const animState = {};
+
+/**
+ * 数字滚动动画
+ * @param {string} id - 元素 ID
+ * @param {number} endVal - 目标值
+ * @param {function} formatter - 格式化函数 (num) => string
+ * @param {number} duration - 动画时长 ms
+ */
+function animateValue(id, endVal, formatter, duration = 600) {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  // 取消之前的动画
+  if (animState[id]?.rafId) {
+    cancelAnimationFrame(animState[id].rafId);
+  }
+
+  const startVal = animState[id]?.value ?? 0;
+  animState[id] = { value: endVal, rafId: null };
+
+  // 值没变就不动画
+  if (startVal === endVal) {
+    el.innerText = formatter(endVal);
+    return;
+  }
+
+  const startTime = performance.now();
+
+  function tick(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // easeOutExpo 缓动
+    const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+
+    const current = startVal + (endVal - startVal) * ease;
+    el.innerText = formatter(current);
+
+    if (progress < 1) {
+      animState[id].rafId = requestAnimationFrame(tick);
+    } else {
+      el.innerText = formatter(endVal);
+      animState[id].rafId = null;
+    }
+  }
+
+  animState[id].rafId = requestAnimationFrame(tick);
+}
+
+// ---- SSE ----
 
 // SSE 连接加载数据（实时推送）
 function connectSSE() {
@@ -27,58 +81,74 @@ function connectSSE() {
 
   evtSource.onerror = (err) => {
     console.warn("SSE connection error, will auto-reconnect:", err);
-    // EventSource 会自动重连，无需手动处理
   };
 
   return evtSource;
 }
 
-// 更新 UI
+// ---- 更新 UI ----
+
 function updateUI(data) {
-  const set = (id, val) => {
-    const el = document.getElementById(id);
-    if (el) el.innerText = val;
-  };
+  // 整数格式化（带千位分隔符）
+  const fmtInt = (n) => formatNumber(Math.round(n));
+  // 百分比格式化
+  const fmtPct = (n) => (n * 100).toFixed(2) + "%";
+  // 小数格式化（5 位）
+  const fmtDec5 = (n) => n.toFixed(5);
 
-  set("total-devices", formatNumber(data.total_devices));
-  set("total-battles", formatNumber(data.total_battle_count));
-  set("total-rounds", formatNumber(data.total_battle_rounds));
-  set("total-cost", formatNumber(data.total_sortie_cost));
-  set("akashi-encounters", formatNumber(data.total_akashi_encounters));
+  // 卡片动画
+  animateValue("total-devices", data.total_devices ?? 0, fmtInt);
+  animateValue("total-battles", data.total_battle_count ?? 0, fmtInt);
+  animateValue("total-rounds", data.total_battle_rounds ?? 0, fmtInt);
+  animateValue("total-cost", data.total_sortie_cost ?? 0, fmtInt);
+  animateValue("akashi-encounters", data.total_akashi_encounters ?? 0, fmtInt);
+  animateValue("akashi-prob-card", data.avg_akashi_probability ?? 0, fmtPct);
+  animateValue("cycle-efficiency", data.cycle_efficiency ?? 0, fmtPct);
 
-  // 遇见明石概率
-  set("akashi-prob-card", formatPercent(data.avg_akashi_probability) + "%");
-
-  // 循环效率
-  set("cycle-efficiency", formatPercent(data.cycle_efficiency) + "%");
-
-  // 平均体力
-  const avgStaminaDisplay =
-    data.total_akashi_encounters > 0 && data.avg_stamina !== undefined
-      ? data.avg_stamina.toFixed(5)
-      : "-";
-  set("avg-stamina-card", avgStaminaDisplay);
+  if (data.total_akashi_encounters > 0 && data.avg_stamina !== undefined) {
+    animateValue("avg-stamina-card", data.avg_stamina, fmtDec5);
+  } else {
+    const el = document.getElementById("avg-stamina-card");
+    if (el) el.innerText = "-";
+  }
 
   // 净赚体力
-  const netStaminaDisplay = data.net_stamina_gain !== undefined
-    ? Math.round(data.net_stamina_gain)
-    : 0;
+  const netVal = data.net_stamina_gain !== undefined ? Math.round(data.net_stamina_gain) : 0;
 
-  // 更新详细表格
+  // 更新详细表格（表格也用动画）
   const tbody = document.getElementById("details-table-body");
   if (tbody) {
-    tbody.innerHTML = `
+    // 首次需要创建行
+    if (!tbody.querySelector("tr")) {
+      tbody.innerHTML = `
             <tr>
-                <td>${formatNumber(data.total_battle_count)}</td>
-                <td>${formatNumber(data.total_battle_rounds)}</td>
-                <td>${formatNumber(data.total_sortie_cost)}</td>
-                <td>${formatNumber(data.total_akashi_encounters)}</td>
-                <td class="highlight">${formatPercent(data.avg_akashi_probability)}%</td>
-                <td>${avgStaminaDisplay}</td>
-                <td class="highlight text-success">${netStaminaDisplay >= 0 ? '+' : ''}${formatNumber(netStaminaDisplay)}</td>
-                <td class="highlight">${formatPercent(data.cycle_efficiency)}%</td>
+                <td id="tbl-battles">--</td>
+                <td id="tbl-rounds">--</td>
+                <td id="tbl-cost">--</td>
+                <td id="tbl-akashi">--</td>
+                <td class="highlight" id="tbl-akashi-prob">--</td>
+                <td id="tbl-avg-stamina">--</td>
+                <td class="highlight text-success" id="tbl-net-stamina">--</td>
+                <td class="highlight" id="tbl-cycle-eff">--</td>
             </tr>
         `;
+    }
+
+    animateValue("tbl-battles", data.total_battle_count ?? 0, fmtInt);
+    animateValue("tbl-rounds", data.total_battle_rounds ?? 0, fmtInt);
+    animateValue("tbl-cost", data.total_sortie_cost ?? 0, fmtInt);
+    animateValue("tbl-akashi", data.total_akashi_encounters ?? 0, fmtInt);
+    animateValue("tbl-akashi-prob", data.avg_akashi_probability ?? 0, fmtPct);
+    animateValue("tbl-cycle-eff", data.cycle_efficiency ?? 0, fmtPct);
+
+    if (data.total_akashi_encounters > 0 && data.avg_stamina !== undefined) {
+      animateValue("tbl-avg-stamina", data.avg_stamina, fmtDec5);
+    }
+
+    animateValue("tbl-net-stamina", netVal, (n) => {
+      const v = Math.round(n);
+      return (v >= 0 ? "+" : "") + formatNumber(v);
+    });
   }
 }
 

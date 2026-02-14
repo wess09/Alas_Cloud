@@ -1,16 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --bg-color: #030712; /* Very dark blue/black */
-  --card-bg: rgba(30, 41, 59, 0.4); /* Glassy slate */
+  --bg-color: #030712;
+  /* Very dark blue/black */
+  --card-bg: rgba(30, 41, 59, 0.4);
+  /* Glassy slate */
   --card-border: rgba(255, 255, 255, 0.08);
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  --accent-primary: #6366f1; /* Indigo */
-  --accent-secondary: #ec4899; /* Pink */
-  --accent-tertiary: #10b981; /* Emerald */
+  --accent-primary: #6366f1;
+  /* Indigo */
+  --accent-secondary: #ec4899;
+  /* Pink */
+  --accent-tertiary: #10b981;
+  /* Emerald */
   --glow-color: rgba(99, 102, 241, 0.15);
-  
+
   --glass-blur: blur(12px);
   --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
@@ -31,42 +36,71 @@ body {
   overflow-x: hidden;
   position: relative;
   /* Ambient background mesh */
-  background-image: 
+  background-image:
     radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 25%),
     radial-gradient(circle at 85% 30%, rgba(236, 72, 153, 0.15) 0%, transparent 25%);
 }
 
 /* Background Animation Blob */
 .ambient-light {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    z-index: -1;
-    pointer-events: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none;
 }
 
 .blob {
-    position: absolute;
-    filter: blur(80px);
-    opacity: 0.4;
-    animation: floating 20s infinite alternate;
+  position: absolute;
+  filter: blur(80px);
+  opacity: 0.4;
+  animation: floating 20s infinite alternate;
 }
 
-.blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #4f46e5; animation-delay: 0s; }
-.blob-2 { bottom: -10%; right: -10%; width: 60vw; height: 60vw; background: #db2777; animation-delay: -5s; }
-.blob-3 { top: 40%; left: 40%; width: 40vw; height: 40vw; background: #0891b2; animation-delay: -10s; }
+.blob-1 {
+  top: -10%;
+  left: -10%;
+  width: 50vw;
+  height: 50vw;
+  background: #4f46e5;
+  animation-delay: 0s;
+}
+
+.blob-2 {
+  bottom: -10%;
+  right: -10%;
+  width: 60vw;
+  height: 60vw;
+  background: #db2777;
+  animation-delay: -5s;
+}
+
+.blob-3 {
+  top: 40%;
+  left: 40%;
+  width: 40vw;
+  height: 40vw;
+  background: #0891b2;
+  animation-delay: -10s;
+}
 
 @keyframes floating {
-    0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(30px, -30px) scale(1.1); }
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  100% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
 }
 
 .container {
   width: 100%;
-  max-width: 1400px; /* Wider container */
+  max-width: 1400px;
+  /* Wider container */
   margin: 0 auto;
   padding: 2rem;
   position: relative;
@@ -139,15 +173,15 @@ header {
 
 /* Card Hover effect */
 .card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    opacity: 0;
-    transition: opacity 0.3s;
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
 .card:hover {
@@ -158,7 +192,7 @@ header {
 }
 
 .card:hover::before {
-    opacity: 1;
+  opacity: 1;
 }
 
 .stat-card {
@@ -176,11 +210,11 @@ header {
   justify-content: center;
   border-radius: 1rem;
   background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .stat-content {
-    flex: 1;
+  flex: 1;
 }
 
 .stat-content h3 {
@@ -197,7 +231,7 @@ header {
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.1;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .stat-content .label {
@@ -208,45 +242,102 @@ header {
 }
 
 /* Individual Card Accents */
-.total-users .stat-icon { color: #60a5fa; background: rgba(96, 165, 250, 0.1); }
-.total-users:hover .stat-icon { background: rgba(96, 165, 250, 0.2); box-shadow: 0 0 15px rgba(96, 165, 250, 0.3); }
+.total-users .stat-icon {
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.1);
+}
 
-.total-battles .stat-icon { color: #a78bfa; background: rgba(167, 139, 250, 0.1); }
-.total-battles:hover .stat-icon { background: rgba(167, 139, 250, 0.2); box-shadow: 0 0 15px rgba(167, 139, 250, 0.3); }
+.total-users:hover .stat-icon {
+  background: rgba(96, 165, 250, 0.2);
+  box-shadow: 0 0 15px rgba(96, 165, 250, 0.3);
+}
 
-.total-rounds .stat-icon { color: #fbbf24; background: rgba(251, 191, 36, 0.1); }
-.total-rounds:hover .stat-icon { background: rgba(251, 191, 36, 0.2); box-shadow: 0 0 15px rgba(251, 191, 36, 0.3); }
+.total-battles .stat-icon {
+  color: #a78bfa;
+  background: rgba(167, 139, 250, 0.1);
+}
 
-.total-cost .stat-icon { color: #f472b6; background: rgba(244, 114, 182, 0.1); }
-.total-cost:hover .stat-icon { background: rgba(244, 114, 182, 0.2); box-shadow: 0 0 15px rgba(244, 114, 182, 0.3); }
+.total-battles:hover .stat-icon {
+  background: rgba(167, 139, 250, 0.2);
+  box-shadow: 0 0 15px rgba(167, 139, 250, 0.3);
+}
 
-.akashi .stat-icon { color: #34d399; background: rgba(52, 211, 153, 0.1); }
-.akashi:hover .stat-icon { background: rgba(52, 211, 153, 0.2); box-shadow: 0 0 15px rgba(52, 211, 153, 0.3); }
+.total-rounds .stat-icon {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+}
 
-.akashi-prob .stat-icon { color: #22d3ee; background: rgba(34, 211, 238, 0.1); }
-.akashi-prob:hover .stat-icon { background: rgba(34, 211, 238, 0.2); box-shadow: 0 0 15px rgba(34, 211, 238, 0.3); }
+.total-rounds:hover .stat-icon {
+  background: rgba(251, 191, 36, 0.2);
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+}
 
-.avg-stamina .stat-icon { color: #facc15; background: rgba(250, 204, 21, 0.1); }
-.avg-stamina:hover .stat-icon { background: rgba(250, 204, 21, 0.2); box-shadow: 0 0 15px rgba(250, 204, 21, 0.3); }
+.total-cost .stat-icon {
+  color: #f472b6;
+  background: rgba(244, 114, 182, 0.1);
+}
 
-.cycle-efficiency .stat-icon { color: #e879f9; background: rgba(232, 121, 249, 0.1); }
-.cycle-efficiency:hover .stat-icon { background: rgba(232, 121, 249, 0.2); box-shadow: 0 0 15px rgba(232, 121, 249, 0.3); }
+.total-cost:hover .stat-icon {
+  background: rgba(244, 114, 182, 0.2);
+  box-shadow: 0 0 15px rgba(244, 114, 182, 0.3);
+}
+
+.akashi .stat-icon {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+}
+
+.akashi:hover .stat-icon {
+  background: rgba(52, 211, 153, 0.2);
+  box-shadow: 0 0 15px rgba(52, 211, 153, 0.3);
+}
+
+.akashi-prob .stat-icon {
+  color: #22d3ee;
+  background: rgba(34, 211, 238, 0.1);
+}
+
+.akashi-prob:hover .stat-icon {
+  background: rgba(34, 211, 238, 0.2);
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+}
+
+.avg-stamina .stat-icon {
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.avg-stamina:hover .stat-icon {
+  background: rgba(250, 204, 21, 0.2);
+  box-shadow: 0 0 15px rgba(250, 204, 21, 0.3);
+}
+
+.cycle-efficiency .stat-icon {
+  color: #e879f9;
+  background: rgba(232, 121, 249, 0.1);
+}
+
+.cycle-efficiency:hover .stat-icon {
+  background: rgba(232, 121, 249, 0.2);
+  box-shadow: 0 0 15px rgba(232, 121, 249, 0.3);
+}
 
 
 /* Data Table Section */
 .details-card {
-  padding: 0; /* Reset padding for table container */
+  padding: 0;
+  /* Reset padding for table container */
 }
 
 .details-header {
-    padding: 1.5rem 2rem;
-    border-bottom: 1px solid var(--card-border);
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--card-border);
 }
 
 .details-header h3 {
-    font-size: 1.25rem;
-    color: var(--text-primary);
-    font-weight: 600;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .table-responsive {
@@ -283,7 +374,7 @@ header {
 }
 
 .data-table tr:hover td {
-    background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .data-table tr:last-child td {
@@ -303,7 +394,7 @@ footer {
   font-size: 0.9rem;
   padding: 2rem;
   border-top: 1px solid var(--card-border);
-  background: linear-gradient(to top, rgba(0,0,0,0.2), transparent);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.2), transparent);
 }
 
 .code {
@@ -317,45 +408,87 @@ footer {
 
 /* Animations */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .card {
-    animation: fadeIn 0.6s ease-out backwards;
+  animation: fadeIn 0.6s ease-out backwards;
 }
 
-.card:nth-child(1) { animation-delay: 0.1s; }
-.card:nth-child(2) { animation-delay: 0.15s; }
-.card:nth-child(3) { animation-delay: 0.2s; }
-.card:nth-child(4) { animation-delay: 0.25s; }
-.card:nth-child(5) { animation-delay: 0.3s; }
-.card:nth-child(6) { animation-delay: 0.35s; }
-.card:nth-child(7) { animation-delay: 0.4s; }
-.card:nth-child(8) { animation-delay: 0.45s; }
-.details-card { animation-delay: 0.6s; }
+.card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.card:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.card:nth-child(4) {
+  animation-delay: 0.25s;
+}
+
+.card:nth-child(5) {
+  animation-delay: 0.3s;
+}
+
+.card:nth-child(6) {
+  animation-delay: 0.35s;
+}
+
+.card:nth-child(7) {
+  animation-delay: 0.4s;
+}
+
+.card:nth-child(8) {
+  animation-delay: 0.45s;
+}
+
+.details-card {
+  animation-delay: 0.6s;
+}
 
 /* Responsive */
 @media (max-width: 768px) {
-  body { padding: 1rem; }
-  .container { padding: 0.5rem; }
-  .logo h1 { font-size: 1.75rem; }
-  
+  body {
+    padding: 1rem;
+  }
+
+  .container {
+    padding: 0.5rem;
+  }
+
+  .logo h1 {
+    font-size: 1.75rem;
+  }
+
   .stats-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
-  .data-table th, .data-table td {
-      padding: 1rem;
+
+  .data-table th,
+  .data-table td {
+    padding: 1rem;
   }
 }
 
 .text-success {
-    color: #4ade80;
+  color: #4ade80;
 }
 
 .stat-icon img {
-    width: 24px;
-    height: 24px;
+  width: 24px;
+  height: 24px;
 }

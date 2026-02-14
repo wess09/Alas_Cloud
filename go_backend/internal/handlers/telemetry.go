@@ -134,7 +134,6 @@ func buildStatsResponse() gin.H {
 		TotalDevices          int64   `json:"total_devices"`
 		TotalBattleCount      int64   `json:"total_battle_count"`
 		TotalBattleRounds     int64   `json:"total_battle_rounds"`
-		TotalSortieCost       int64   `json:"total_sortie_cost"`
 		TotalAkashiEncounters int64   `json:"total_akashi_encounters"`
 		TotalStaminaGain      float64 `json:"total_stamina_gain"`
 	}
@@ -144,10 +143,12 @@ func buildStatsResponse() gin.H {
 		"count(id) as total_devices",
 		"sum(battle_count) as total_battle_count",
 		"sum(battle_rounds) as total_battle_rounds",
-		"sum(sortie_cost) as total_sortie_cost",
 		"sum(akashi_encounters) as total_akashi_encounters",
 		"sum(akashi_encounters * average_stamina) as total_stamina_gain",
 	).Scan(&res)
+
+	// 出击消耗 = 总战斗轮次 × 5（侵蚀一）
+	totalSortieCost := res.TotalBattleRounds * 5
 
 	avgAkashiProbability := 0.0
 	if res.TotalBattleRounds > 0 {
@@ -162,15 +163,15 @@ func buildStatsResponse() gin.H {
 	netStaminaGain := res.TotalStaminaGain - float64(res.TotalBattleRounds)*5
 
 	cycleEfficiency := 0.0
-	if res.TotalSortieCost > 0 {
-		cycleEfficiency = netStaminaGain / float64(res.TotalSortieCost)
+	if totalSortieCost > 0 {
+		cycleEfficiency = netStaminaGain / float64(totalSortieCost)
 	}
 
 	return gin.H{
 		"total_devices":           res.TotalDevices,
 		"total_battle_count":      res.TotalBattleCount,
 		"total_battle_rounds":     res.TotalBattleRounds,
-		"total_sortie_cost":       res.TotalSortieCost,
+		"total_sortie_cost":       totalSortieCost,
 		"total_akashi_encounters": res.TotalAkashiEncounters,
 		"avg_akashi_probability":  avgAkashiProbability,
 		"avg_stamina":             avgStamina,
