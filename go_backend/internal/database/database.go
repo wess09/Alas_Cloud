@@ -55,6 +55,7 @@ func InitDB() error {
 	err = DB.AutoMigrate(
 		&models.TelemetryData{},
 		&models.Announcement{},
+		&models.SystemConfig{},
 		&models.AdminUser{},
 		&models.UserProfile{},
 		&models.Report{},

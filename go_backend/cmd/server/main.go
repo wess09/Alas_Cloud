@@ -64,6 +64,7 @@ func main() {
 
 	// Public API
 	r.GET("/api/get/announcement", handlers.GetLatestAnnouncement)
+	r.GET("/api/updata", handlers.GetAutoUpdateStatus)
 	r.POST("/api/telemetry", handlers.SubmitTelemetry)
 	r.GET("/api/telemetry/stats", handlers.GetTelemetryStats)
 	r.GET("/api/telemetry/stats/stream", handlers.StreamTelemetryStats)
@@ -90,6 +91,9 @@ func main() {
 		admin.DELETE("/announcement/:id", handlers.DeleteAnnouncement)
 		admin.PATCH("/announcement/:id/toggle", handlers.ToggleAnnouncement)
 		
+		// System Config
+		admin.GET("/config/auto_update", handlers.AdminGetAutoUpdateStatus)
+		admin.PATCH("/config/auto_update", handlers.AdminToggleAutoUpdate)
 
 		// User Management
 		admin.POST("/ban", handlers.DirectBanUser)

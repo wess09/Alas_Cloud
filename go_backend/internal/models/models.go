@@ -56,6 +56,19 @@ func (Announcement) TableName() string {
 	return "announcements"
 }
 
+// SystemConfig 系统全局配置模型
+type SystemConfig struct {
+	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	Key       string    `gorm:"uniqueIndex;not null;column:key" json:"key"`
+	Value     string    `gorm:"not null;column:value" json:"value"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime;column:updated_at" json:"updated_at"`
+}
+
+// TableName 指定表名
+func (SystemConfig) TableName() string {
+	return "system_configs"
+}
+
 // AdminUser 管理员账户模型
 type AdminUser struct {
 	ID           uint      `gorm:"primaryKey;autoIncrement" json:"id"`
