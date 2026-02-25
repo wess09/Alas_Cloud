@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,31 +15,31 @@
             --bg-card: #1a1a24;
             --bg-input: #0d0d14;
             --bg-hover: #252532;
-            
+
             --accent-primary: #6366f1;
             --accent-secondary: #8b5cf6;
             --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
             --accent-glow: rgba(99, 102, 241, 0.4);
-            
+
             --text-primary: #f4f4f5;
             --text-secondary: #a1a1aa;
             --text-muted: #71717a;
-            
+
             --success: #22c55e;
             --success-bg: rgba(34, 197, 94, 0.1);
             --warning: #f59e0b;
             --warning-bg: rgba(245, 158, 11, 0.1);
             --danger: #ef4444;
             --danger-bg: rgba(239, 68, 68, 0.1);
-            
+
             --border: rgba(255, 255, 255, 0.06);
             --border-focus: rgba(99, 102, 241, 0.5);
-            
+
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 16px;
             --radius-xl: 24px;
-            
+
             --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
             --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.4);
             --shadow-glow: 0 0 40px var(--accent-glow);
@@ -66,7 +67,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: 
+            background:
                 radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent),
                 radial-gradient(ellipse 60% 40% at 100% 100%, rgba(139, 92, 246, 0.1), transparent);
             pointer-events: none;
@@ -558,6 +559,7 @@
                 transform: translateX(100%);
                 opacity: 0;
             }
+
             to {
                 transform: translateX(0);
                 opacity: 1;
@@ -628,10 +630,60 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Switch/Toggle */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--text-muted);
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--success);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+            background-color: white;
         }
     </style>
 </head>
+
 <body>
     <div class="bg-pattern"></div>
     <div class="toast-container" id="toastContainer"></div>
@@ -649,7 +701,8 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">密码</label>
-                    <input type="password" class="form-input" id="password" placeholder="输入管理密码" autocomplete="current-password">
+                    <input type="password" class="form-input" id="password" placeholder="输入管理密码"
+                        autocomplete="current-password">
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
                     登录
@@ -678,6 +731,27 @@
             </div>
         </header>
 
+        <!-- System Config Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">⚙️</div>
+                <span class="card-title">系统设置</span>
+            </div>
+            <div class="form-group"
+                style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;">
+                <div>
+                    <label class="form-label" style="margin-bottom: 0;">客户端自动更新</label>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">开启后允许 Alas
+                        客户端自动获取并更新云端仓库的改动</div>
+                </div>
+                <!-- Need a toggle switch styled to match index.html or standard switch -->
+                <label class="switch">
+                    <input type="checkbox" id="autoUpdateToggle" onchange="toggleAutoUpdate(this.checked)">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+
         <!-- Create Card -->
         <div class="card">
             <div class="card-header">
@@ -689,22 +763,22 @@
                     <label class="form-label">公告标题</label>
                     <input type="text" class="form-input" id="newTitle" placeholder="输入公告标题" required>
                 </div>
-                
+
                 <div class="segmented-control">
                     <button type="button" class="segment active" data-type="content">📝 纯文本</button>
                     <button type="button" class="segment" data-type="url">🔗 网页链接</button>
                 </div>
-                
+
                 <div id="contentInput" class="form-group">
                     <label class="form-label">公告内容</label>
                     <textarea class="form-input" id="newContent" placeholder="输入公告详细内容..."></textarea>
                 </div>
-                
+
                 <div id="urlInput" class="form-group hidden">
                     <label class="form-label">网页链接</label>
                     <input type="url" class="form-input" id="newUrl" placeholder="https://example.com/announcement">
                 </div>
-                
+
                 <button type="submit" class="btn btn-primary">
                     🚀 发布公告
                 </button>
@@ -756,10 +830,10 @@
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            
+
             const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
             toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
-            
+
             container.appendChild(toast);
             setTimeout(() => {
                 toast.style.animation = 'toast-in 0.3s ease reverse';
@@ -773,7 +847,7 @@
                 'Content-Type': 'application/json',
                 ...options.headers
             };
-            
+
             if (authToken) {
                 headers['Authorization'] = `Bearer ${authToken}`;
             }
@@ -786,7 +860,7 @@
             }
 
             const data = response.status !== 204 ? await response.json() : {};
-            
+
             if (!response.ok) {
                 throw new Error(data.detail || '请求失败');
             }
@@ -800,11 +874,12 @@
                 method: 'POST',
                 body: JSON.stringify({ username, password })
             });
-            
+
             authToken = data.token;
             localStorage.setItem('admin_token', authToken);
             showMainView();
             loadAnnouncements();
+            loadSystemConfig();
             showToast('登录成功', 'success');
         }
 
@@ -840,7 +915,7 @@
 
         function renderAnnouncements(announcements) {
             const container = document.getElementById('announcementList');
-            
+
             if (!announcements || announcements.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
@@ -891,12 +966,12 @@
                 });
                 console.log('[DEBUG] 创建公告成功:', result);
                 showToast('公告发布成功', 'success');
-                
+
                 // 刷新公告列表
                 console.log('[DEBUG] 刷新公告列表...');
                 await loadAnnouncements();
                 console.log('[DEBUG] 公告列表刷新完成');
-                
+
                 document.getElementById('newTitle').value = '';
                 document.getElementById('newContent').value = '';
                 document.getElementById('newUrl').value = '';
@@ -908,7 +983,7 @@
 
         async function deleteAnnouncement(id) {
             if (!confirm('确定要删除这条公告吗？')) return;
-            
+
             try {
                 await apiRequest(`/api/admin/announcement/${id}`, { method: 'DELETE' });
                 showToast('公告已删除', 'success');
@@ -924,6 +999,27 @@
                 showToast(`公告已${isActive ? '激活' : '停用'}`, 'success');
                 loadAnnouncements();
             } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // System Config Functions
+        async function loadSystemConfig() {
+            try {
+                const data = await apiRequest('/api/admin/config/auto_update');
+                document.getElementById('autoUpdateToggle').checked = data.auto_update;
+            } catch (error) {
+                console.error('[ERROR] 加载系统配置失败:', error);
+                showToast('加载系统配置失败', 'error');
+            }
+        }
+
+        async function toggleAutoUpdate(isActive) {
+            try {
+                await apiRequest(`/api/admin/config/auto_update?is_active=${isActive}`, { method: 'PATCH' });
+                showToast(`自动更新已${isActive ? '开启' : '关闭'}`, 'success');
+            } catch (error) {
+                document.getElementById('autoUpdateToggle').checked = !isActive;
                 showToast(error.message, 'error');
             }
         }
@@ -975,7 +1071,7 @@
             e.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            
+
             try {
                 await login(username, password);
             } catch (error) {
@@ -988,12 +1084,12 @@
             const title = document.getElementById('newTitle').value.trim();
             const content = document.getElementById('newContent').value.trim();
             const url = document.getElementById('newUrl').value.trim();
-            
+
             if (!title) {
                 showToast('请输入标题', 'error');
                 return;
             }
-            
+
             await createAnnouncement(title, content, url);
         });
 
@@ -1009,7 +1105,7 @@
             segment.addEventListener('click', () => {
                 document.querySelectorAll('.segment').forEach(s => s.classList.remove('active'));
                 segment.classList.add('active');
-                
+
                 const type = segment.dataset.type;
                 document.getElementById('contentInput').classList.toggle('hidden', type !== 'content');
                 document.getElementById('urlInput').classList.toggle('hidden', type !== 'url');
@@ -1021,15 +1117,16 @@
             if (e.target === e.currentTarget) hidePasswordModal();
         });
 
-        // Init: Check Token
         if (authToken) {
             apiRequest('/api/admin/announcements')
                 .then(data => {
                     showMainView();
                     renderAnnouncements(data);
+                    loadSystemConfig();
                 })
                 .catch(() => logout());
         }
     </script>
 </body>
+
 </html>
