@@ -39,7 +39,6 @@ func main() {
 	r := gin.Default()
 
 	// 全局中间件
-	r.Use(middleware.BlacklistMiddleware())
 	// CORS
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")

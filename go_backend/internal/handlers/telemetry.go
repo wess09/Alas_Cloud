@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"alas-cloud/internal/database"
-	"alas-cloud/internal/middleware"
 	"alas-cloud/internal/models"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"sync"
@@ -80,7 +80,7 @@ func SubmitTelemetry(c *gin.Context) {
 	// 1. 校验 Device ID 格式
 	match, _ := regexp.MatchString("^[a-fA-F0-9]{32,64}$", req.DeviceID)
 	if !match {
-		middleware.BanIP(ip)
+		log.Printf("[TELEMETRY] Rejected: invalid device_id format, ip=%s, device_id=%s", ip, req.DeviceID)
 		c.JSON(http.StatusOK, gin.H{
 			"status": "success", "message": "遥测数据已保存",
 			"device_id": req.DeviceID, "instance_id": req.InstanceID,
@@ -90,7 +90,7 @@ func SubmitTelemetry(c *gin.Context) {
 
 	// 2. 校验数值不能为 0
 	if req.AkashiEncounters == 0 || req.AkashiProbability == 0 || req.AverageStamina == 0 || req.NetStaminaGain == 0 {
-		middleware.BanIP(ip)
+		log.Printf("[TELEMETRY] Rejected: zero value fields, ip=%s, device_id=%s", ip, req.DeviceID)
 		c.JSON(http.StatusOK, gin.H{
 			"status": "success", "message": "遥测数据已保存",
 			"device_id": req.DeviceID, "instance_id": req.InstanceID,
@@ -100,7 +100,7 @@ func SubmitTelemetry(c *gin.Context) {
 
 	// 3. 校验战斗逻辑
 	if req.BattleCount <= req.BattleRounds {
-		middleware.BanIP(ip)
+		log.Printf("[TELEMETRY] Rejected: battle_count(%d) <= battle_rounds(%d), ip=%s, device_id=%s", req.BattleCount, req.BattleRounds, ip, req.DeviceID)
 		c.JSON(http.StatusOK, gin.H{
 			"status": "success", "message": "遥测数据已保存",
 			"device_id": req.DeviceID, "instance_id": req.InstanceID,
