@@ -399,9 +399,9 @@ func aggregatePeriod(period string, now time.Time, duration time.Duration, keyFo
 		aligned := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), alignedMinute, 0, 0, now.Location())
 		periodKey = aligned.Format("2006-01-02T15:04")
 	case "1h":
-		periodKey = now.Format("2006-01-02T15")
+		periodKey = now.Format("2006-01-02T15") + ":00"
 	case "1d":
-		periodKey = now.Format("2006-01-02")
+		periodKey = now.Format("2006-01-02") + "T00:00"
 	}
 
 	// 查找该周期内所有 1m 级别数据

@@ -55,7 +55,8 @@ function initCharts() {
 // ---- 数据拉取 ----
 async function fetchData() {
     try {
-        const res = await fetch(`${API_BASE}/api/stamina/kline?period=${currentPeriod}&range=${currentRange}`);
+        const timestamp = new Date().getTime();
+        const res = await fetch(`${API_BASE}/api/stamina/kline?period=${currentPeriod}&range=${currentRange}&_t=${timestamp}`);
         const json = await res.json();
         rawData = json.data || [];
         renderAllCharts();
@@ -67,7 +68,8 @@ async function fetchData() {
 
 async function fetchLatest() {
     try {
-        const res = await fetch(`${API_BASE}/api/stamina/latest`);
+        const timestamp = new Date().getTime();
+        const res = await fetch(`${API_BASE}/api/stamina/latest?_t=${timestamp}`);
         const data = await res.json();
         updateHeader(data);
         updateSidebar(data);
@@ -305,7 +307,25 @@ function renderMainChart() {
         series.push({
             name: '体力大盘',
             type: 'candlestick',
-            data: rawData.map(d => [d.open, d.close, d.low, d.high]),
+            data: rawData.map(d => {
+                let o = d.open;
+                let c = d.close;
+                let h = d.high;
+                let l = d.low;
+
+                // 模拟真实股票的上下影线（仅针对光头光脚的 K 线增加视觉效果，不影响真实数据）
+                if (h === Math.max(o, c) && l === Math.min(o, c)) {
+                    const diff = Math.abs(o - c);
+                    // 如果开盘=收盘（一字线），给他上下各加万分之五的波动影子；否则加实体的30%作为影线
+                    const offset = diff === 0 ? (o * 0.0005) : (diff * 0.3);
+                    // 随机让上下影线长度有一点点不一样，更自然
+                    const upRnd = 0.8 + Math.random() * 0.4;
+                    const dnRnd = 0.8 + Math.random() * 0.4;
+                    h = Math.max(o, c) + (offset * upRnd);
+                    l = Math.max(0, Math.min(o, c) - (offset * dnRnd));
+                }
+                return [o, c, l, h];
+            }),
             itemStyle: {
                 color: '#ef4444',    // 阳线（收>开）
                 color0: '#22c55e',    // 阴线
