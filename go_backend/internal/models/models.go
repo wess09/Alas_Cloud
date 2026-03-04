@@ -175,6 +175,7 @@ type StaminaOHLCV struct {
 	High          float64   `gorm:"not null;column:high" json:"high"`
 	Low           float64   `gorm:"not null;column:low" json:"low"`
 	Close         float64   `gorm:"not null;column:close" json:"close"`
+	Volume        float64   `gorm:"not null;column:volume" json:"volume"` // 大盘总量
 	ReportedCount int       `gorm:"not null;column:reported_count" json:"reported_count"`
 	FilledCount   int       `gorm:"not null;column:filled_count" json:"filled_count"`
 	CreatedAt     time.Time `gorm:"autoCreateTime;column:created_at" json:"created_at"`
