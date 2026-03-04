@@ -30,6 +30,7 @@ func main() {
 	// 启动后台任务
 	tasks.StartCleanupTask()
 	tasks.StartUsernameGeneratorTask()
+	tasks.StartStaminaAggregator()
 
 	// 设置 Gin 模式
 	if os.Getenv("GIN_MODE") == "release" {
@@ -72,6 +73,12 @@ func main() {
 	// Leaderboard API
 	r.GET("/api/leaderboard", handlers.GetLeaderboard)
 	r.POST("/api/user/profile", handlers.UpdateUserProfile)
+
+	// Stamina Dashboard API
+	r.POST("/api/stamina/report", handlers.ReportStamina)
+	r.GET("/api/stamina/kline", handlers.GetStaminaKline)
+	r.GET("/api/stamina/latest", handlers.GetStaminaLatest)
+	r.GET("/api/stamina/stream", handlers.StreamStaminaDashboard)
 
 	// Report & Ban API
 	r.POST("/api/report", handlers.ReportUser)

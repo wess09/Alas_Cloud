@@ -60,6 +60,8 @@ func InitDB() error {
 		&models.UserProfile{},
 		&models.Report{},
 		&models.BannedUser{},
+		&models.StaminaSnapshot{},
+		&models.StaminaOHLCV{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)

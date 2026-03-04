@@ -149,3 +149,45 @@ type ChangePasswordRequest struct {
 	OldPassword string `json:"old_password" binding:"required"`
 	NewPassword string `json:"new_password" binding:"required,min=6"`
 }
+
+// ---- 体力大盘相关模型 ----
+
+// StaminaSnapshot 用户体力快照（每次上报原始数据）
+type StaminaSnapshot struct {
+	ID        uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
+	DeviceID  string    `gorm:"index;not null;column:device_id" json:"device_id"`
+	Stamina   float64   `gorm:"not null;column:stamina" json:"stamina"`
+	MinuteKey string    `gorm:"index;not null;column:minute_key" json:"minute_key"` // 格式: 2006-01-02T15:04
+	CreatedAt time.Time `gorm:"autoCreateTime;column:created_at" json:"created_at"`
+}
+
+// TableName 指定表名
+func (StaminaSnapshot) TableName() string {
+	return "stamina_snapshots"
+}
+
+// StaminaOHLCV 体力大盘 K 线聚合数据
+type StaminaOHLCV struct {
+	ID            uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
+	MinuteKey     string    `gorm:"uniqueIndex;not null;column:minute_key" json:"minute_key"` // 格式: 2006-01-02T15:04
+	Period        string    `gorm:"index;not null;column:period" json:"period"`               // 1m, 5m, 1h, 1d
+	Open          float64   `gorm:"not null;column:open" json:"open"`
+	High          float64   `gorm:"not null;column:high" json:"high"`
+	Low           float64   `gorm:"not null;column:low" json:"low"`
+	Close         float64   `gorm:"not null;column:close" json:"close"`
+	Volume        float64   `gorm:"not null;column:volume" json:"volume"` // 大盘总量
+	ReportedCount int       `gorm:"not null;column:reported_count" json:"reported_count"`
+	FilledCount   int       `gorm:"not null;column:filled_count" json:"filled_count"`
+	CreatedAt     time.Time `gorm:"autoCreateTime;column:created_at" json:"created_at"`
+}
+
+// TableName 指定表名
+func (StaminaOHLCV) TableName() string {
+	return "stamina_ohlcv"
+}
+
+// StaminaReportRequest 体力上报请求
+type StaminaReportRequest struct {
+	DeviceID string  `json:"device_id" binding:"required"`
+	Stamina  float64 `json:"stamina" binding:"gte=0"`
+}
