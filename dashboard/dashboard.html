@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>侵蚀体力大盘 | Erosion Stamina Market</title>
+    <meta name="description" content="Alas Cloud 侵蚀体力数据聚合大盘，实时K线图与技术指标分析" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <link rel="stylesheet" href="dashboard.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet" />
+    <!-- ECharts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+</head>
+
+<body>
+    <!-- 背景光效 -->
+    <div class="ambient-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- ===== 顶部信息栏 ===== -->
+        <div class="header-bar">
+            <div class="header-left">
+                <div class="market-logo">📈</div>
+                <div class="market-title">
+                    <h1>侵蚀体力大盘</h1>
+                    <span class="subtitle">Erosion Stamina Market Index</span>
+                </div>
+            </div>
+            <div class="header-center">
+                <span class="price-display" id="current-total">--</span>
+                <div class="change-display">
+                    <span class="change-badge up" id="change-badge">
+                        <span id="change-arrow">▲</span>
+                        <span id="change-pct">0.00%</span>
+                    </span>
+                    <span class="change-abs" id="change-abs">+0</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="header-meta">
+                    <span><span class="live-dot"></span>实时数据</span>
+                    <span id="last-update-time">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 图表区域 ===== -->
+        <div class="chart-area">
+            <!-- 控制栏 -->
+            <div class="controls-bar">
+                <!-- 时间范围 -->
+                <div class="control-group" id="range-group">
+                    <button class="control-btn active" data-range="day" onclick="switchRange('day')">日内</button>
+                    <button class="control-btn" data-range="week" onclick="switchRange('week')">近一周</button>
+                    <button class="control-btn" data-range="month" onclick="switchRange('month')">近一月</button>
+                </div>
+
+                <div class="control-divider"></div>
+
+                <!-- 图表类型 -->
+                <div class="control-group" id="type-group">
+                    <button class="control-btn active" data-type="candlestick"
+                        onclick="switchChartType('candlestick')">K线图</button>
+                    <button class="control-btn" data-type="line" onclick="switchChartType('line')">折线图</button>
+                    <button class="control-btn" data-type="area" onclick="switchChartType('area')">面积图</button>
+                </div>
+
+                <div class="control-divider"></div>
+
+                <!-- 时间粒度 -->
+                <div class="control-group" id="period-group">
+                    <button class="control-btn active" data-period="1m" onclick="switchPeriod('1m')">1分</button>
+                    <button class="control-btn" data-period="5m" onclick="switchPeriod('5m')">5分</button>
+                    <button class="control-btn" data-period="1h" onclick="switchPeriod('1h')">1时</button>
+                    <button class="control-btn" data-period="1d" onclick="switchPeriod('1d')">日线</button>
+                </div>
+
+                <!-- 技术指标开关 -->
+                <div class="indicator-toggles">
+                    <button class="indicator-btn active" id="toggle-ma" onclick="toggleIndicator('ma')">MA</button>
+                    <button class="indicator-btn" id="toggle-boll" onclick="toggleIndicator('boll')">BOLL</button>
+                    <button class="indicator-btn active" id="toggle-macd"
+                        onclick="toggleIndicator('macd')">MACD</button>
+                    <button class="indicator-btn" id="toggle-kdj" onclick="toggleIndicator('kdj')">KDJ</button>
+                </div>
+            </div>
+
+            <!-- 主图 -->
+            <div class="chart-panel">
+                <div class="chart-main" id="chart-main"></div>
+                <div class="chart-volume" id="chart-volume"></div>
+            </div>
+
+            <!-- 副图指标 -->
+            <div class="chart-panel">
+                <div class="chart-indicator" id="chart-indicator"></div>
+            </div>
+        </div>
+
+        <!-- ===== 右侧面板 ===== -->
+        <div class="sidebar">
+            <!-- 数据概览 -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">
+                    <h3>📊 数据概览</h3>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">开盘</span>
+                        <span class="value" id="info-open">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">收盘</span>
+                        <span class="value" id="info-close">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">最高</span>
+                        <span class="value" id="info-high">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">最低</span>
+                        <span class="value" id="info-low">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">总量</span>
+                        <span class="value" id="info-volume">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">振幅</span>
+                        <span class="value" id="info-amplitude">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据质量 -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">
+                    <h3>🔍 数据质量</h3>
+                </div>
+                <div class="quality-bar">
+                    <div class="quality-row">
+                        <span class="quality-label">实际上报</span>
+                        <span class="quality-value reported" id="quality-reported">0 人</span>
+                    </div>
+                    <div class="quality-row">
+                        <span class="quality-label">数据补全</span>
+                        <span class="quality-value filled" id="quality-filled">0 人</span>
+                    </div>
+                    <div class="quality-row">
+                        <span class="quality-label">数据覆盖率</span>
+                        <span class="quality-value" id="quality-coverage" style="color:var(--accent-light)">--</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-reported" id="progress-reported" style="width:0%"></div>
+                        <div class="progress-filled" id="progress-filled" style="width:0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 体力排行 -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">
+                    <h3>🏆 体力贡献排行</h3>
+                    <span class="badge">TOP 10</span>
+                </div>
+                <div class="rank-list" id="rank-list">
+                    <div class="no-data" style="padding: 2rem;">
+                        <div class="no-data-icon">📭</div>
+                        <div class="no-data-text">暂无数据</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>

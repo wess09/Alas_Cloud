@@ -169,8 +169,8 @@ func (StaminaSnapshot) TableName() string {
 // StaminaOHLCV 体力大盘 K 线聚合数据
 type StaminaOHLCV struct {
 	ID            uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	MinuteKey     string    `gorm:"uniqueIndex;not null;column:minute_key" json:"minute_key"` // 格式: 2006-01-02T15:04
-	Period        string    `gorm:"index;not null;column:period" json:"period"`               // 1m, 5m, 1h, 1d
+	MinuteKey     string    `gorm:"uniqueIndex:uix_key_period;not null;column:minute_key" json:"minute_key"` // 格式: 2006-01-02T15:04
+	Period        string    `gorm:"uniqueIndex:uix_key_period;not null;column:period" json:"period"`         // 1m, 5m, 1h, 1d
 	Open          float64   `gorm:"not null;column:open" json:"open"`
 	High          float64   `gorm:"not null;column:high" json:"high"`
 	Low           float64   `gorm:"not null;column:low" json:"low"`

@@ -318,7 +318,28 @@ func AggregateMinute(minuteKey string) {
 		// 从未上报过的用户贡献 0，不参与求和
 	}
 
-	// 3. 查看该分钟是否已有 OHLCV 记录
+	// 3. 获取前一分钟的 Close 值作为本分钟的 Open（形成连续K线）
+	var prevOHLCV models.StaminaOHLCV
+	prevClose := totalStamina // 默认：无历史数据时 Open = Close
+	database.DB.
+		Where("period = ? AND minute_key < ?", "1m", minuteKey).
+		Order("minute_key DESC").
+		First(&prevOHLCV)
+	if prevOHLCV.ID > 0 {
+		prevClose = prevOHLCV.Close
+	}
+
+	openVal := prevClose
+	highVal := totalStamina
+	lowVal := totalStamina
+	if openVal > highVal {
+		highVal = openVal
+	}
+	if openVal < lowVal {
+		lowVal = openVal
+	}
+
+	// 4. 查看该分钟是否已有 OHLCV 记录
 	var existing models.StaminaOHLCV
 	err := database.DB.Where("minute_key = ? AND period = ?", minuteKey, "1m").First(&existing).Error
 
@@ -327,9 +348,9 @@ func AggregateMinute(minuteKey string) {
 		ohlcv := models.StaminaOHLCV{
 			MinuteKey:     minuteKey,
 			Period:        "1m",
-			Open:          totalStamina,
-			High:          totalStamina,
-			Low:           totalStamina,
+			Open:          openVal,
+			High:          highVal,
+			Low:           lowVal,
 			Close:         totalStamina,
 			Volume:        totalStamina,
 			ReportedCount: reportedCount,
@@ -337,7 +358,7 @@ func AggregateMinute(minuteKey string) {
 		}
 		database.DB.Create(&ohlcv)
 	} else {
-		// 更新
+		// 更新（保持 Open 不变，更新 High/Low/Close）
 		if totalStamina > existing.High {
 			existing.High = totalStamina
 		}
@@ -351,8 +372,8 @@ func AggregateMinute(minuteKey string) {
 		database.DB.Save(&existing)
 	}
 
-	log.Printf("[STAMINA] Aggregated minute=%s total=%.0f reported=%d filled=%d",
-		minuteKey, totalStamina, reportedCount, filledCount)
+	log.Printf("[STAMINA] Aggregated minute=%s open=%.0f close=%.0f reported=%d filled=%d",
+		minuteKey, openVal, totalStamina, reportedCount, filledCount)
 }
 
 // AggregateHigherPeriods 聚合高级别周期（5m, 1h, 1d）
