@@ -139,8 +139,28 @@ func SubmitTelemetry(c *gin.Context) {
 	})
 }
 
+var (
+	cachedStats     gin.H
+	cachedStatsTime time.Time
+	statsMutex      sync.RWMutex
+)
+
 // buildStatsResponse 构建统计数据响应（复用于 REST 和 SSE）
 func buildStatsResponse() gin.H {
+	statsMutex.RLock()
+	if time.Since(cachedStatsTime) < 5*time.Second && cachedStats != nil {
+		defer statsMutex.RUnlock()
+		return cachedStats
+	}
+	statsMutex.RUnlock()
+
+	statsMutex.Lock()
+	defer statsMutex.Unlock()
+	
+	// Double-check after acquiring write lock
+	if time.Since(cachedStatsTime) < 5*time.Second && cachedStats != nil {
+		return cachedStats
+	}
 	type Result struct {
 		TotalDevices          int64   `json:"total_devices"`
 		TotalBattleCount      int64   `json:"total_battle_count"`
@@ -182,7 +202,7 @@ func buildStatsResponse() gin.H {
 		cycleEfficiency = netStaminaGain / float64(totalSortieCost)
 	}
 
-	return gin.H{
+	cachedStats = gin.H{
 		"total_devices":           res.TotalDevices,
 		"total_battle_count":      res.TotalBattleCount,
 		"total_battle_rounds":     res.TotalBattleRounds,
@@ -194,6 +214,9 @@ func buildStatsResponse() gin.H {
 		"net_stamina_gain":        netStaminaGain,
 		"cycle_efficiency":        cycleEfficiency,
 	}
+	cachedStatsTime = time.Now()
+
+	return cachedStats
 }
 
 // GetTelemetryStats 获取聚合统计（REST，保留兼容）

@@ -32,7 +32,7 @@ type TelemetryData struct {
 	AverageStamina    float64   `gorm:"not null;column:average_stamina" json:"average_stamina"`
 	NetStaminaGain    int       `gorm:"not null;column:net_stamina_gain" json:"net_stamina_gain"`
 	CreatedAt         time.Time `gorm:"autoCreateTime;column:created_at" json:"created_at"`
-	UpdatedAt         time.Time `gorm:"autoUpdateTime;column:updated_at" json:"updated_at"`
+	UpdatedAt         time.Time `gorm:"index:idx_updated_at;autoUpdateTime;column:updated_at" json:"updated_at"`
 }
 
 // TableName 指定表名
