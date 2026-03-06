@@ -99,13 +99,13 @@ function updateHeader(data) {
         arrow.textContent = '▲';
         pct.textContent = '+' + changePct.toFixed(2) + '%';
         abs.textContent = '+' + formatNum(change, 0);
-        abs.style.color = 'var(--green)';
+        abs.style.color = 'var(--red)';
     } else {
         badge.className = 'change-badge down';
         arrow.textContent = '▼';
         pct.textContent = changePct.toFixed(2) + '%';
         abs.textContent = formatNum(change, 0);
-        abs.style.color = 'var(--red)';
+        abs.style.color = 'var(--green)';
     }
 
     if (data.minute_key) {

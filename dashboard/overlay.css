@@ -1,0 +1,85 @@
+:root {
+    --red: #ef4444;
+    --green: #22c55e;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    /* OBS 需要完全透明的背景 */
+    background: transparent;
+    color: var(--text-primary);
+    font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif;
+    overflow: hidden;
+    padding: 8px;
+}
+
+.overlay-container {
+    width: 500px;
+    height: 220px;
+    /* 取消了原本的磨砂玻璃，实现全透明，让数据悬浮在游戏画面上 */
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+}
+
+
+
+.title {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: 1px;
+}
+
+.update-time {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.data-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    /* 强制不换行，防止百万数值把后面内容挤下去 */
+}
+
+.current-total {
+    font-size: 42px;
+    font-weight: 800;
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.change-group {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 18px;
+}
+
+.change-group.up {
+    color: var(--red);
+}
+
+.change-group.down {
+    color: var(--green);
+}
+
+.chart-container {
+    flex: 1;
+    width: 100%;
+    margin-top: 4px;
+    /* 这个图表区域自带发光效果 */
+}

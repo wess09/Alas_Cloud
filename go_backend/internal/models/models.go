@@ -20,10 +20,10 @@ func (UserProfile) TableName() string {
 // TelemetryData 遥测数据模型
 type TelemetryData struct {
 	ID                uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	DeviceID          string    `gorm:"uniqueIndex:uix_device_instance;not null;column:device_id" json:"device_id"`
-	InstanceID        string    `gorm:"uniqueIndex:uix_device_instance;not null;column:instance_id" json:"instance_id"`
+	DeviceID          string    `gorm:"uniqueIndex:uix_dev_inst_month;not null;column:device_id" json:"device_id"`
+	InstanceID        string    `gorm:"uniqueIndex:uix_dev_inst_month;not null;column:instance_id" json:"instance_id"`
 	IPAddress         string    `gorm:"index;column:ip_address" json:"ip_address"`
-	Month             string    `gorm:"index;not null;column:month" json:"month"`
+	Month             string    `gorm:"uniqueIndex:uix_dev_inst_month;not null;column:month" json:"month"`
 	BattleCount       int       `gorm:"not null;column:battle_count" json:"battle_count"`
 	BattleRounds      int       `gorm:"not null;column:battle_rounds" json:"battle_rounds"`
 	SortieCost        int       `gorm:"not null;column:sortie_cost" json:"sortie_cost"`

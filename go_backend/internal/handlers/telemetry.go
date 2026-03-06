@@ -123,7 +123,7 @@ func SubmitTelemetry(c *gin.Context) {
 		NetStaminaGain:    req.NetStaminaGain,
 	}
 
-	if err := database.DB.Where(&models.TelemetryData{DeviceID: req.DeviceID, InstanceID: req.InstanceID}).
+	if err := database.DB.Where(&models.TelemetryData{DeviceID: req.DeviceID, InstanceID: req.InstanceID, Month: req.Month}).
 		Assign(data).
 		FirstOrCreate(&data).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -240,7 +240,70 @@ func sendSSEEvent(c *gin.Context, data gin.H) {
 		return
 	}
 	fmt.Fprintf(c.Writer, "data: %s\n\n", jsonData)
-	c.Writer.Flush()
 }
 
+// GetTelemetryHistory 获取指定设备的历史遥测数据并进行累计统计
+func GetTelemetryHistory(c *gin.Context) {
+	deviceID := c.Query("device_id")
+	if deviceID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "device_id is required"})
+		return
+	}
 
+	// 解析完整的 Device ID
+	fullID := resolveFullDeviceID(deviceID)
+
+	var history []models.TelemetryData
+	err := database.DB.Where("device_id = ?", fullID).Order("month DESC").Find(&history).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch history"})
+		return
+	}
+
+	// 获取用户名（如果有）
+	var profile models.UserProfile
+	database.DB.Where("device_id = ?", fullID).First(&profile)
+	username := profile.Username
+	if username == "" {
+		username = "未知指挥官"
+	}
+
+	// 累计聚合
+	var totalBattleCount, totalBattleRounds, totalSortieCost int
+	var totalAkashiEncounters, totalNetStaminaGain int
+	var totalStaminaSum float64 // 用于计算加权平均
+
+	for _, record := range history {
+		totalBattleCount += record.BattleCount
+		totalBattleRounds += record.BattleRounds
+		totalSortieCost += record.SortieCost
+		totalAkashiEncounters += record.AkashiEncounters
+		totalNetStaminaGain += record.NetStaminaGain
+		totalStaminaSum += record.AverageStamina * float64(record.AkashiEncounters)
+	}
+
+	avgAkashiProbability := 0.0
+	if totalBattleRounds > 0 {
+		avgAkashiProbability = float64(totalAkashiEncounters) / float64(totalBattleRounds)
+	}
+
+	avgStamina := 0.0
+	if totalAkashiEncounters > 0 {
+		avgStamina = totalStaminaSum / float64(totalAkashiEncounters)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"device_id": fullID,
+		"username":  username,
+		"total": gin.H{
+			"battle_count":       totalBattleCount,
+			"battle_rounds":      totalBattleRounds,
+			"sortie_cost":        totalSortieCost,
+			"akashi_encounters":  totalAkashiEncounters,
+			"akashi_probability": avgAkashiProbability,
+			"average_stamina":    avgStamina,
+			"net_stamina_gain":   totalNetStaminaGain,
+		},
+		"history": history,
+	})
+}

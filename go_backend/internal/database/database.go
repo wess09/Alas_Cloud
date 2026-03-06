@@ -49,6 +49,10 @@ func InitDB() error {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
+	// 尝试删除旧的唯一索引，以便按月保存数据
+	// 忽略错误，因为如果索引不存在或已经删除，它会报错
+	DB.Exec("DROP INDEX IF EXISTS uix_device_instance")
+
 	// 自动迁移模式
 	// 注意：GORM 的 AutoMigrate 会自动创建表、缺少列、索引等
 	// 但不会删除未使用的列，这通常是安全的

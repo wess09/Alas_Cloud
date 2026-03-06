@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>直播体力监控 - OBS</title>
+    <!-- 确保 OBS 不缓存此页面 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <link rel="stylesheet" href="overlay.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;600;800&display=swap"
+        rel="stylesheet" />
+    <!-- ECharts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+</head>
+
+<body>
+    <div class="overlay-container">
+        <div class="header">
+            <div class="title">碧蓝航线 侵蚀指数</div>
+        </div>
+
+        <div class="data-row">
+            <div class="current-total" id="current-total">--</div>
+            <div class="change-group" id="change-group">
+                <span id="change-arrow"></span>
+                <span id="change-abs">--</span>
+                <span id="change-pct">--</span>
+            </div>
+        </div>
+
+        <!-- 迷你价格走势图 -->
+        <div class="chart-container" id="mini-chart"></div>
+    </div>
+
+    <script src="overlay.js"></script>
+</body>
+
+</html>

@@ -122,9 +122,13 @@ async function loadLeaderboard(page) {
                     <td style="color:var(--text-secondary); font-size:0.85em;">${dateStr}</td>
                     <td>
                         <div style="display:flex; gap:0.25rem;">
+                            <a href="history.html?device_id=${entry.device_id}" class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.8em; height: auto; text-decoration: none;">
+                                📜 履历
+                            </a>
                             <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.8em; height: auto;" onclick="reportUser('${entry.device_id}', '${escapeHtml(entry.username)}')">
                                 🚩 举报
                             </button>
+                        </div>
                     </td>
                 </tr>
             `;
