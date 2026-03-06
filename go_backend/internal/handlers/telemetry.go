@@ -239,6 +239,12 @@ func StreamTelemetryStats(c *gin.Context) {
 	heartbeat := time.NewTicker(30 * time.Second)
 	defer heartbeat.Stop()
 
+	// 使用节流器，最快 5 秒推送一次
+	throttleTicker := time.NewTicker(5 * time.Second)
+	defer throttleTicker.Stop()
+
+	needsUpdate := false
+
 	// 立即发送当前数据
 	sendSSEEvent(c, buildStatsResponse())
 
@@ -247,8 +253,14 @@ func StreamTelemetryStats(c *gin.Context) {
 		case <-clientGone:
 			return
 		case <-updateCh:
-			// 有新数据，立即推送
-			sendSSEEvent(c, buildStatsResponse())
+			// 标记有更新，但不立即推流（防洪泛）
+			needsUpdate = true
+		case <-throttleTicker.C:
+			// 如果期间内收到更新信号，则推流一次
+			if needsUpdate {
+				sendSSEEvent(c, buildStatsResponse())
+				needsUpdate = false
+			}
 		case <-heartbeat.C:
 			// 心跳保活，防止代理/CDN 超时断开
 			fmt.Fprintf(c.Writer, ": heartbeat\n\n")
