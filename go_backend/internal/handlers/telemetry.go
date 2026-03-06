@@ -286,15 +286,15 @@ func GetTelemetryHistory(c *gin.Context) {
 	fullID := resolveFullDeviceID(deviceID)
 
 	type MonthlyAggr struct {
-		Month            string    `json:"month"`
-		BattleCount      int       `json:"battle_count"`
-		BattleRounds     int       `json:"battle_rounds"`
-		SortieCost       int       `json:"sortie_cost"`
-		AkashiEncounters int       `json:"akashi_encounters"`
-		NetStaminaGain   int       `json:"net_stamina_gain"`
-		TotalStaminaSum  float64   `json:"-"`
-		AverageStamina   float64   `json:"average_stamina"`
-		UpdatedAt        time.Time `json:"updated_at"`
+		Month            string  `json:"month"`
+		BattleCount      int     `json:"battle_count"`
+		BattleRounds     int     `json:"battle_rounds"`
+		SortieCost       int     `json:"sortie_cost"`
+		AkashiEncounters int     `json:"akashi_encounters"`
+		NetStaminaGain   int     `json:"net_stamina_gain"`
+		TotalStaminaSum  float64 `json:"-"`
+		AverageStamina   float64 `json:"average_stamina"`
+		UpdatedAt        string  `json:"updated_at"`
 	}
 
 	var monthlyAggrs []MonthlyAggr
