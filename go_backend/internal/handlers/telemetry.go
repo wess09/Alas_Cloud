@@ -130,9 +130,6 @@ func SubmitTelemetry(c *gin.Context) {
 		return
 	}
 
-	// 通知所有 SSE 客户端
-	statsBroadcaster.NotifyUpdate()
-
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success", "message": "遥测数据已保存",
 		"device_id": req.DeviceID, "instance_id": req.InstanceID,
@@ -141,26 +138,31 @@ func SubmitTelemetry(c *gin.Context) {
 
 var (
 	cachedStats     gin.H
-	cachedStatsTime time.Time
+	cachedStatsJSON string
 	statsMutex      sync.RWMutex
 )
 
-// buildStatsResponse 构建统计数据响应（复用于 REST 和 SSE）
-func buildStatsResponse() gin.H {
-	statsMutex.RLock()
-	if time.Since(cachedStatsTime) < 5*time.Second && cachedStats != nil {
-		defer statsMutex.RUnlock()
-		return cachedStats
-	}
-	statsMutex.RUnlock()
+// InitStatsWorker 启动后台统计预计算协程，必须在 main 中调用一次
+func InitStatsWorker() {
+	// 启动时立即计算一次
+	refreshStats()
+	// 后台每 5 秒刷新一次
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			oldJSON := getStatsJSON()
+			refreshStats()
+			newJSON := getStatsJSON()
+			// 只有数据真正变化了才通知 SSE 客户端
+			if newJSON != oldJSON {
+				statsBroadcaster.NotifyUpdate()
+			}
+		}
+	}()
+}
 
-	statsMutex.Lock()
-	defer statsMutex.Unlock()
-	
-	// Double-check after acquiring write lock
-	if time.Since(cachedStatsTime) < 5*time.Second && cachedStats != nil {
-		return cachedStats
-	}
+func refreshStats() {
 	type Result struct {
 		TotalDevices          int64   `json:"total_devices"`
 		TotalBattleCount      int64   `json:"total_battle_count"`
@@ -170,7 +172,6 @@ func buildStatsResponse() gin.H {
 	}
 
 	var res Result
-	// Dashboard 仅统计最近 24 小时的活跃数据
 	cutoff := time.Now().Add(-24 * time.Hour)
 	database.DB.Model(&models.TelemetryData{}).
 		Where("updated_at > ?", cutoff).
@@ -182,7 +183,6 @@ func buildStatsResponse() gin.H {
 			"sum(akashi_encounters * average_stamina) as total_stamina_gain",
 		).Scan(&res)
 
-	// 出击消耗 = 总战斗轮次 × 5（侵蚀一）
 	totalSortieCost := res.TotalBattleRounds * 5
 
 	avgAkashiProbability := 0.0
@@ -202,7 +202,7 @@ func buildStatsResponse() gin.H {
 		cycleEfficiency = netStaminaGain / float64(totalSortieCost)
 	}
 
-	cachedStats = gin.H{
+	stats := gin.H{
 		"total_devices":           res.TotalDevices,
 		"total_battle_count":      res.TotalBattleCount,
 		"total_battle_rounds":     res.TotalBattleRounds,
@@ -214,14 +214,30 @@ func buildStatsResponse() gin.H {
 		"net_stamina_gain":        netStaminaGain,
 		"cycle_efficiency":        cycleEfficiency,
 	}
-	cachedStatsTime = time.Now()
 
+	jsonData, _ := json.Marshal(stats)
+
+	statsMutex.Lock()
+	cachedStats = stats
+	cachedStatsJSON = string(jsonData)
+	statsMutex.Unlock()
+}
+
+func getStatsJSON() string {
+	statsMutex.RLock()
+	defer statsMutex.RUnlock()
+	return cachedStatsJSON
+}
+
+func getStatsResponse() gin.H {
+	statsMutex.RLock()
+	defer statsMutex.RUnlock()
 	return cachedStats
 }
 
 // GetTelemetryStats 获取聚合统计（REST，保留兼容）
 func GetTelemetryStats(c *gin.Context) {
-	c.JSON(http.StatusOK, buildStatsResponse())
+	c.JSON(http.StatusOK, getStatsResponse())
 }
 
 // StreamTelemetryStats SSE 实时推送统计数据
@@ -239,42 +255,23 @@ func StreamTelemetryStats(c *gin.Context) {
 	heartbeat := time.NewTicker(30 * time.Second)
 	defer heartbeat.Stop()
 
-	// 使用节流器，最快 5 秒推送一次
-	throttleTicker := time.NewTicker(5 * time.Second)
-	defer throttleTicker.Stop()
-
-	needsUpdate := false
-
-	// 立即发送当前数据
-	sendSSEEvent(c, buildStatsResponse())
+	// 立即从内存返回当前数据（零延迟）
+	fmt.Fprintf(c.Writer, "data: %s\n\n", getStatsJSON())
+	c.Writer.Flush()
 
 	for {
 		select {
 		case <-clientGone:
 			return
 		case <-updateCh:
-			// 标记有更新，但不立即推流（防洪泛）
-			needsUpdate = true
-		case <-throttleTicker.C:
-			// 如果期间内收到更新信号，则推流一次
-			if needsUpdate {
-				sendSSEEvent(c, buildStatsResponse())
-				needsUpdate = false
-			}
+			// 后台 worker 检测到数据变化才会触发这里
+			fmt.Fprintf(c.Writer, "data: %s\n\n", getStatsJSON())
+			c.Writer.Flush()
 		case <-heartbeat.C:
-			// 心跳保活，防止代理/CDN 超时断开
 			fmt.Fprintf(c.Writer, ": heartbeat\n\n")
 			c.Writer.Flush()
 		}
 	}
-}
-
-func sendSSEEvent(c *gin.Context, data gin.H) {
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return
-	}
-	fmt.Fprintf(c.Writer, "data: %s\n\n", jsonData)
 }
 
 // GetTelemetryHistory 获取指定设备的历史遥测数据并进行累计统计

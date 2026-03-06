@@ -42,7 +42,9 @@ func InitDB() error {
 	)
 
 	var err error
-	DB, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+	// 启用 WAL 模式和 busy_timeout，允许读写并发，避免聚合任务锁死读取
+	dsn := dbPath + "?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)"
+	DB, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{
 		Logger: newLogger,
 	})
 	if err != nil {

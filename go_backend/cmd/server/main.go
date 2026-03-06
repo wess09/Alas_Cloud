@@ -63,6 +63,7 @@ func main() {
 	})
 
 	// Public API
+	handlers.InitStatsWorker() // 启动后台统计预计算协程
 	r.GET("/api/get/announcement", handlers.GetLatestAnnouncement)
 	r.GET("/api/updata", handlers.GetAutoUpdateStatus)
 	r.POST("/api/telemetry", handlers.SubmitTelemetry)
