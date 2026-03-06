@@ -253,8 +253,36 @@ func GetTelemetryHistory(c *gin.Context) {
 	// 解析完整的 Device ID
 	fullID := resolveFullDeviceID(deviceID)
 
-	var history []models.TelemetryData
-	err := database.DB.Where("device_id = ?", fullID).Order("month DESC").Find(&history).Error
+	type MonthlyAggr struct {
+		Month            string    `json:"month"`
+		BattleCount      int       `json:"battle_count"`
+		BattleRounds     int       `json:"battle_rounds"`
+		SortieCost       int       `json:"sortie_cost"`
+		AkashiEncounters int       `json:"akashi_encounters"`
+		NetStaminaGain   int       `json:"net_stamina_gain"`
+		TotalStaminaSum  float64   `json:"-"`
+		AverageStamina   float64   `json:"average_stamina"`
+		UpdatedAt        time.Time `json:"updated_at"`
+	}
+
+	var monthlyAggrs []MonthlyAggr
+
+	err := database.DB.Table("telemetry_data").
+		Select(`
+			month, 
+			SUM(battle_count) as battle_count,
+			SUM(battle_rounds) as battle_rounds,
+			SUM(sortie_cost) as sortie_cost,
+			SUM(akashi_encounters) as akashi_encounters,
+			(SUM(net_stamina_gain) - SUM(battle_rounds * 5)) as net_stamina_gain,
+			SUM(average_stamina * akashi_encounters) as total_stamina_sum,
+			MAX(updated_at) as updated_at
+		`).
+		Where("device_id = ?", fullID).
+		Group("month").
+		Order("month DESC").
+		Scan(&monthlyAggrs).Error
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch history"})
 		return
@@ -273,13 +301,20 @@ func GetTelemetryHistory(c *gin.Context) {
 	var totalAkashiEncounters, totalNetStaminaGain int
 	var totalStaminaSum float64 // 用于计算加权平均
 
-	for _, record := range history {
-		totalBattleCount += record.BattleCount
-		totalBattleRounds += record.BattleRounds
-		totalSortieCost += record.SortieCost
-		totalAkashiEncounters += record.AkashiEncounters
-		totalNetStaminaGain += record.NetStaminaGain
-		totalStaminaSum += record.AverageStamina * float64(record.AkashiEncounters)
+	for i := range monthlyAggrs {
+		// 计算每月的平均体力
+		if monthlyAggrs[i].AkashiEncounters > 0 {
+			monthlyAggrs[i].AverageStamina = monthlyAggrs[i].TotalStaminaSum / float64(monthlyAggrs[i].AkashiEncounters)
+		} else {
+			monthlyAggrs[i].AverageStamina = 0
+		}
+
+		totalBattleCount += monthlyAggrs[i].BattleCount
+		totalBattleRounds += monthlyAggrs[i].BattleRounds
+		totalSortieCost += monthlyAggrs[i].SortieCost
+		totalAkashiEncounters += monthlyAggrs[i].AkashiEncounters
+		totalNetStaminaGain += monthlyAggrs[i].NetStaminaGain
+		totalStaminaSum += monthlyAggrs[i].TotalStaminaSum
 	}
 
 	avgAkashiProbability := 0.0
@@ -304,7 +339,7 @@ func GetTelemetryHistory(c *gin.Context) {
 			"average_stamina":    avgStamina,
 			"net_stamina_gain":   totalNetStaminaGain,
 		},
-		"history": history,
+		"history": monthlyAggrs,
 	})
 }
 
@@ -331,7 +366,7 @@ func GetGlobalTelemetryHistory(c *gin.Context) {
 			SUM(battle_rounds) as battle_rounds,
 			SUM(sortie_cost) as sortie_cost,
 			SUM(akashi_encounters) as akashi_encounters,
-			SUM(net_stamina_gain) as net_stamina_gain,
+			(SUM(net_stamina_gain) - SUM(battle_rounds * 5)) as net_stamina_gain,
 			SUM(average_stamina * akashi_encounters) as total_stamina_sum
 		`).
 		Group("month").

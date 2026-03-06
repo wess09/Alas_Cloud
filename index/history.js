@@ -44,7 +44,8 @@ function fetchHistoryData(deviceId) {
                 staminaElem.style.color = '#ef4444'; // Red
             }
 
-            document.getElementById('t-cost').textContent = formatNumber(t.sortie_cost);
+            // 出击成本 = 总战斗轮次 * 5
+            document.getElementById('t-cost').textContent = formatNumber(t.battle_rounds * 5);
             document.getElementById('t-akashi').textContent = formatNumber(t.akashi_encounters);
 
             // Populate Monthly Table
