@@ -67,6 +67,7 @@ func main() {
 	r.GET("/api/updata", handlers.GetAutoUpdateStatus)
 	r.POST("/api/telemetry", handlers.SubmitTelemetry)
 	r.GET("/api/telemetry/history", handlers.GetTelemetryHistory)
+	r.GET("/api/telemetry/global_history", handlers.GetGlobalTelemetryHistory)
 	r.GET("/api/telemetry/stats", handlers.GetTelemetryStats)
 	r.GET("/api/telemetry/stats/stream", handlers.StreamTelemetryStats)
 	r.POST("/api/post/bug", handlers.SubmitBug) // 假设 Bug 报告不需要鉴权，或者维持现状

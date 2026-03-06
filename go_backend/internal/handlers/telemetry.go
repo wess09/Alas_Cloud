@@ -307,3 +307,83 @@ func GetTelemetryHistory(c *gin.Context) {
 		"history": history,
 	})
 }
+
+// GetGlobalTelemetryHistory 获取所有用户的历史遥测聚合数据
+func GetGlobalTelemetryHistory(c *gin.Context) {
+	// 获取所有用户的按月分组数据
+	type MonthlyAggr struct {
+		Month            string  `json:"month"`
+		BattleCount      int     `json:"battle_count"`
+		BattleRounds     int     `json:"battle_rounds"`
+		SortieCost       int     `json:"sortie_cost"`
+		AkashiEncounters int     `json:"akashi_encounters"`
+		NetStaminaGain   int     `json:"net_stamina_gain"`
+		TotalStaminaSum  float64 `json:"-"`
+		AverageStamina   float64 `json:"average_stamina"`
+	}
+
+	var monthlyAggrs []MonthlyAggr
+
+	err := database.DB.Table("telemetry_data").
+		Select(`
+			month, 
+			SUM(battle_count) as battle_count,
+			SUM(battle_rounds) as battle_rounds,
+			SUM(sortie_cost) as sortie_cost,
+			SUM(akashi_encounters) as akashi_encounters,
+			SUM(net_stamina_gain) as net_stamina_gain,
+			SUM(average_stamina * akashi_encounters) as total_stamina_sum
+		`).
+		Group("month").
+		Order("month DESC").
+		Scan(&monthlyAggrs).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch global history"})
+		return
+	}
+
+	var totalBattleCount, totalBattleRounds, totalSortieCost int
+	var totalAkashiEncounters, totalNetStaminaGain int
+	var totalStaminaSum float64
+
+	for i := range monthlyAggrs {
+		// 计算每月的平均体力
+		if monthlyAggrs[i].AkashiEncounters > 0 {
+			monthlyAggrs[i].AverageStamina = monthlyAggrs[i].TotalStaminaSum / float64(monthlyAggrs[i].AkashiEncounters)
+		} else {
+			monthlyAggrs[i].AverageStamina = 0
+		}
+
+		// 累计总计数据
+		totalBattleCount += monthlyAggrs[i].BattleCount
+		totalBattleRounds += monthlyAggrs[i].BattleRounds
+		totalSortieCost += monthlyAggrs[i].SortieCost
+		totalAkashiEncounters += monthlyAggrs[i].AkashiEncounters
+		totalNetStaminaGain += monthlyAggrs[i].NetStaminaGain
+		totalStaminaSum += monthlyAggrs[i].TotalStaminaSum
+	}
+
+	avgAkashiProbability := 0.0
+	if totalBattleRounds > 0 {
+		avgAkashiProbability = float64(totalAkashiEncounters) / float64(totalBattleRounds)
+	}
+
+	avgStamina := 0.0
+	if totalAkashiEncounters > 0 {
+		avgStamina = totalStaminaSum / float64(totalAkashiEncounters)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"total": gin.H{
+			"battle_count":       totalBattleCount,
+			"battle_rounds":      totalBattleRounds,
+			"sortie_cost":        totalSortieCost,
+			"akashi_encounters":  totalAkashiEncounters,
+			"akashi_probability": avgAkashiProbability,
+			"average_stamina":    avgStamina,
+			"net_stamina_gain":   totalNetStaminaGain,
+		},
+		"history": monthlyAggrs,
+	})
+}

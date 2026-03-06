@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alas Global History | 大盘历史数据</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        .page-title {
+            color: #10b981;
+            text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .commander-info {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .commander-name {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .commander-id {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.3rem 0.8rem;
+            border-radius: 99px;
+            font-size: 0.9rem;
+        }
+
+        .cumulative-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .cumulative-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .cumulative-card:hover {
+            transform: translateY(-5px);
+            border-color: #10b981;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), 0 0 15px rgba(16, 185, 129, 0.1);
+        }
+
+        .c-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .c-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            margin: 0.5rem 0;
+            background: linear-gradient(135deg, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .c-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 2rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .history-table th {
+            color: #10b981;
+        }
+
+        .month-badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-weight: 600;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 1rem;
+            border: 1px dashed var(--card-border);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient-light">
+        <div class="blob blob-1" style="background: radial-gradient(circle, #10b981 0%, transparent 70%);"></div>
+        <div class="blob blob-2" style="background: #1e293b;"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header style="margin-bottom: 2rem;">
+            <div style="position: absolute; left: 0; top: 0;">
+                <a href="index.html" class="nav-link">← 返回聚合仪表盘</a>
+            </div>
+            <div class="logo">
+                <span class="icon">🌍</span>
+                <h1 class="page-title">大盘历史数据</h1>
+            </div>
+            <p class="subtitle">Global Historical Telemetry</p>
+        </header>
+
+        <div id="loading" class="empty-state">
+            <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
+            正在调取统计档案...
+        </div>
+
+        <div id="content" style="display: none;">
+            <div class="commander-info">
+                <div class="commander-name">所有指挥官累计数据</div>
+                <div class="commander-id">Alas Network Global Data</div>
+            </div>
+
+            <div class="section-header">
+                <div class="section-title">🏆 全网累计成就 / Global Totals</div>
+            </div>
+
+            <div class="cumulative-stats">
+                <div class="cumulative-card">
+                    <div class="c-icon">⚔️</div>
+                    <div class="c-value" id="t-battles">0</div>
+                    <div class="c-label">总出击轮次</div>
+                </div>
+                <div class="cumulative-card">
+                    <div class="c-icon">⚡</div>
+                    <div class="c-value" id="t-stamina">0</div>
+                    <div class="c-label">总净赚体力</div>
+                </div>
+                <div class="cumulative-card">
+                    <div class="c-icon">💰</div>
+                    <div class="c-value" id="t-cost">0</div>
+                    <div class="c-label">总出击成本 (币)</div>
+                </div>
+                <div class="cumulative-card">
+                    <div class="c-icon">🐱</div>
+                    <div class="c-value" id="t-akashi">0</div>
+                    <div class="c-label">明石遭遇总次数</div>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <div class="section-title">📅 月度聚合记录 / Monthly Aggregations</div>
+            </div>
+
+            <div class="card details-card" style="animation: slideUp 0.8s ease-out 0.2s both;">
+                <div class="table-responsive">
+                    <table class="data-table history-table">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Battles</th>
+                                <th>Net AP</th>
+                                <th>Akashi</th>
+                                <th>Avg AP / Akashi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-list">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer style="margin-top: 4rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+            <p>数据由 Alas Cloud API 提供</p>
+        </footer>
+    </div>
+
+    <script src="global_history.js"></script>
+</body>
+
+</html>
