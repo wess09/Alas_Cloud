@@ -233,11 +233,20 @@ func GetAzurstatHistory(c *gin.Context) {
 		return
 	}
 
-	baseQuery := reportQuery.Joins(`LEFT JOIN (
-		SELECT report_id, COALESCE(SUM(amount), 0) as item_amount
-		FROM azurstat_item_drops
-		GROUP BY report_id
-	) as item_totals ON item_totals.report_id = azurstat_reports.id`)
+	itemTotalsQuery := database.DB.Table("azurstat_item_drops").
+		Select("report_id, COALESCE(SUM(amount), 0) as item_amount").
+		Group("report_id")
+
+	if isMeowRaw := strings.TrimSpace(c.Query("is_meow")); isMeowRaw != "" {
+		isMeow, parseErr := strconv.ParseBool(isMeowRaw)
+		if parseErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid is_meow"})
+			return
+		}
+		itemTotalsQuery = itemTotalsQuery.Where("is_meow = ?", isMeow)
+	}
+
+	baseQuery := reportQuery.Joins("LEFT JOIN (?) as item_totals ON item_totals.report_id = azurstat_reports.id", itemTotalsQuery)
 
 	type historyRow struct {
 		Date        string `json:"date"`
@@ -289,12 +298,21 @@ func GetAzurstatFilters(c *gin.Context) {
 		return
 	}
 
-	sort.Ints(hazardLevels)
+	hazardLevelSet := make(map[int]struct{}, len(hazardLevels))
+	uniqueHazardLevels := make([]int, 0, len(hazardLevels))
+	for _, level := range hazardLevels {
+		if _, exists := hazardLevelSet[level]; exists {
+			continue
+		}
+		hazardLevelSet[level] = struct{}{}
+		uniqueHazardLevels = append(uniqueHazardLevels, level)
+	}
+	sort.Ints(uniqueHazardLevels)
 
 	c.JSON(http.StatusOK, gin.H{
 		"tasks":         tasks,
 		"zones":         zones,
-		"hazard_levels": hazardLevels,
+		"hazard_levels": uniqueHazardLevels,
 	})
 }
 
