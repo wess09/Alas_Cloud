@@ -60,6 +60,8 @@ func InitDB() error {
 	// 但不会删除未使用的列，这通常是安全的
 	err = DB.AutoMigrate(
 		&models.TelemetryData{},
+		&models.AzurstatReport{},
+		&models.AzurstatItemDrop{},
 		&models.Announcement{},
 		&models.SystemConfig{},
 		&models.AdminUser{},

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AzurStat 掉落统计</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        .page-title {
+            color: #f59e0b;
+            text-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: #f59e0b;
+        }
+
+        .filter-card {
+            margin-bottom: 2rem;
+            overflow: visible;
+        }
+
+        .filter-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            padding: 1.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-group label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .input-group input,
+        .input-group select {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            color: var(--text-primary);
+            min-height: 46px;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: rgba(245, 158, 11, 0.6);
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: #f59e0b;
+            color: #111827;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 46px;
+        }
+
+        .btn:hover {
+            filter: brightness(1.08);
+            box-shadow: 0 0 18px rgba(245, 158, 11, 0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border: 1px solid var(--card-border);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .summary-note {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .items-table th,
+        .history-table th {
+            color: #fbbf24;
+        }
+
+        .numeric-cell {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 1rem;
+            border: 1px dashed var(--card-border);
+        }
+
+        .loading-spinner {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.12);
+            border-top-color: #f59e0b;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .table-empty td {
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            color: #fbbf24;
+            font-size: 0.85rem;
+        }
+
+        .status-chip::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                margin-bottom: 2rem;
+            }
+
+            .header-nav {
+                position: static !important;
+                margin-bottom: 1rem;
+                text-align: left;
+            }
+
+            .filter-actions {
+                grid-column: 1 / -1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient-light">
+        <div class="blob blob-1" style="background: radial-gradient(circle, #f59e0b 0%, transparent 70%);"></div>
+        <div class="blob blob-2" style="background: #1e293b;"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="header-nav" style="position: absolute; left: 0; top: 0;">
+                <a href="index.html" class="nav-link">← 返回主页</a>
+            </div>
+            <div class="logo">
+                <span class="icon">📦</span>
+                <h1 class="page-title">AzurStat 掉落统计</h1>
+            </div>
+            <p class="subtitle">Azur Lane Drop Analytics</p>
+        </header>
+
+        <div class="card filter-card">
+            <div class="details-header">
+                <h3>筛选条件</h3>
+            </div>
+            <form id="filter-form" class="filter-form">
+                <div class="input-group">
+                    <label for="task">任务</label>
+                    <select id="task" name="task">
+                        <option value="">全部任务</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="zone_id">Zone</label>
+                    <select id="zone_id" name="zone_id">
+                        <option value="">全部 Zone</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="hazard_level">危险等级</label>
+                    <select id="hazard_level" name="hazard_level">
+                        <option value="">全部等级</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="is_meow">掉落类型</label>
+                    <select id="is_meow" name="is_meow">
+                        <option value="">全部</option>
+                        <option value="false">普通掉落</option>
+                        <option value="true">猫点掉落</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="start_date">开始日期</label>
+                    <input id="start_date" name="start_date" type="date" />
+                </div>
+                <div class="input-group">
+                    <label for="end_date">结束日期</label>
+                    <input id="end_date" name="end_date" type="date" />
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn">查询</button>
+                    <button type="button" id="reset-filters" class="btn btn-secondary">重置</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="loading" class="empty-state">
+            <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
+            正在加载 AzurStat 统计数据...
+        </div>
+
+        <div id="error-state" class="empty-state" style="display:none;"></div>
+
+        <div id="content" style="display:none;">
+            <div class="stats-grid">
+                <div class="card total-users">
+                    <div class="stat-card">
+                        <div class="stat-icon">📝</div>
+                        <div class="stat-content">
+                            <h3>总上报次数</h3>
+                            <div class="value" id="stat-total-reports">0</div>
+                            <div class="label">Total Reports</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card total-battles">
+                    <div class="stat-card">
+                        <div class="stat-icon">📱</div>
+                        <div class="stat-content">
+                            <h3>总设备数</h3>
+                            <div class="value" id="stat-total-devices">0</div>
+                            <div class="label">Distinct Devices</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card total-rounds">
+                    <div class="stat-card">
+                        <div class="stat-icon">⚔️</div>
+                        <div class="stat-content">
+                            <h3>总战斗轮数</h3>
+                            <div class="value" id="stat-total-combats">0</div>
+                            <div class="label">Combat Count</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card total-cost">
+                    <div class="stat-card">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-content">
+                            <h3>总掉落数</h3>
+                            <div class="value" id="stat-total-items">0</div>
+                            <div class="label">Item Amount</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card akashi">
+                    <div class="stat-card">
+                        <div class="stat-icon">🧾</div>
+                        <div class="stat-content">
+                            <h3>物品种类数</h3>
+                            <div class="value" id="stat-item-types">0</div>
+                            <div class="label">Unique Items</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <div class="section-title">📊 物品排行</div>
+                <div class="summary-note" id="items-summary">按总掉落数量排序</div>
+            </div>
+            <div class="card details-card">
+                <div class="table-responsive">
+                    <table class="data-table items-table">
+                        <thead>
+                            <tr>
+                                <th>排名</th>
+                                <th>物品名</th>
+                                <th class="numeric-cell">总掉落数量</th>
+                                <th class="numeric-cell">掉落记录数</th>
+                                <th class="numeric-cell">猫点数量</th>
+                                <th class="numeric-cell">普通数量</th>
+                                <th class="numeric-cell">平均每战掉落</th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <div class="section-title">📅 趋势历史</div>
+                <div class="summary-note">
+                    <span id="history-interval-badge" class="status-chip">按日统计</span>
+                </div>
+            </div>
+            <div class="card details-card">
+                <div class="table-responsive">
+                    <table class="data-table history-table">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th class="numeric-cell">上报次数</th>
+                                <th class="numeric-cell">战斗轮数</th>
+                                <th class="numeric-cell">掉落总数</th>
+                                <th class="numeric-cell">设备数</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>数据由 AzurStat API 提供</p>
+        </footer>
+    </div>
+
+    <script src="azurstat.js?v=1"></script>
+</body>
+
+</html>

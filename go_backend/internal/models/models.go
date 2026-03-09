@@ -191,3 +191,70 @@ type StaminaReportRequest struct {
 	DeviceID string  `json:"device_id" binding:"required"`
 	Stamina  float64 `json:"stamina" binding:"gte=0"`
 }
+
+// ---- AzurStat 掉落统计相关模型 ----
+
+// AzurstatReport 单次 AzurStat 原始上报
+// 每次请求视为一条独立记录，不做幂等去重
+// Zone/ZoneType/ZoneID 保留原始维度便于筛选和聚合
+// CombatCount 用于总体战斗轮数与平均每战掉落计算
+// Task 仅用于区分不同上报来源任务
+// CreatedAt 作为统计历史主时间字段
+// UpdatedAt 由 GORM 自动维护
+// DeviceID 采用与 telemetry 相同的设备标识
+// HazardLevel 保存危险等级 1-6
+// TableName 见下方
+//
+// 注意：前端独立部署，不影响后端数据模型设计。
+type AzurstatReport struct {
+	ID          uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
+	DeviceID    string    `gorm:"index:idx_azurstat_device_id;not null;column:device_id" json:"device_id"`
+	Task        string    `gorm:"index:idx_azurstat_task;not null;column:task" json:"task"`
+	Zone        string    `gorm:"column:zone" json:"zone"`
+	ZoneType    string    `gorm:"column:zone_type" json:"zone_type"`
+	ZoneID      string    `gorm:"index:idx_azurstat_zone_id;column:zone_id" json:"zone_id"`
+	HazardLevel int       `gorm:"index:idx_azurstat_hazard_level;not null;column:hazard_level" json:"hazard_level"`
+	CombatCount int       `gorm:"not null;column:combat_count" json:"combat_count"`
+	CreatedAt   time.Time `gorm:"index:idx_azurstat_created_at;autoCreateTime;column:created_at" json:"created_at"`
+	UpdatedAt   time.Time `gorm:"autoUpdateTime;column:updated_at" json:"updated_at"`
+}
+
+func (AzurstatReport) TableName() string {
+	return "azurstat_reports"
+}
+
+// AzurstatItemDrop 单次上报中的单个物品掉落
+type AzurstatItemDrop struct {
+	ID        uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
+	ReportID  uint      `gorm:"index:idx_azurstat_item_report_id;not null;column:report_id" json:"report_id"`
+	Item      string    `gorm:"index:idx_azurstat_item_name;not null;column:item" json:"item"`
+	Amount    int       `gorm:"not null;column:amount" json:"amount"`
+	IsMeow    bool      `gorm:"index:idx_azurstat_is_meow;not null;default:false;column:is_meow" json:"is_meow"`
+	CreatedAt time.Time `gorm:"autoCreateTime;column:created_at" json:"created_at"`
+}
+
+func (AzurstatItemDrop) TableName() string {
+	return "azurstat_item_drops"
+}
+
+// AzurStat API 请求结构
+type AzurstatRequest struct {
+	DeviceID string         `json:"device_id" binding:"required"`
+	Task     string         `json:"task" binding:"required"`
+	Body     AzurstatBody   `json:"body" binding:"required"`
+}
+
+type AzurstatBody struct {
+	Zone        string         `json:"zone"`
+	ZoneType    string         `json:"zone_type"`
+	ZoneID      string         `json:"zone_id"`
+	HazardLevel int            `json:"hazard_level" binding:"required"`
+	CombatCount int            `json:"combat_count" binding:"required"`
+	Items       []AzurstatItem `json:"items" binding:"required"`
+}
+
+type AzurstatItem struct {
+	Item   string `json:"item" binding:"required"`
+	Amount int    `json:"amount" binding:"required"`
+	IsMeow bool   `json:"is_meow"`
+}
