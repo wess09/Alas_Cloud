@@ -246,8 +246,8 @@ type AzurstatRequest struct {
 
 type AzurstatBody struct {
 	Zone        string         `json:"zone"`
-	ZoneType    string         `json:"zone_type"`
-	ZoneID      string         `json:"zone_id"`
+	ZoneType    int            `json:"zone_type"`
+	ZoneID      int            `json:"zone_id"`
 	HazardLevel int            `json:"hazard_level" binding:"required"`
 	CombatCount int            `json:"combat_count" binding:"required"`
 	Items       []AzurstatItem `json:"items" binding:"required"`

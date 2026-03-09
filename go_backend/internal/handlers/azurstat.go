@@ -73,8 +73,8 @@ func SubmitAzurstat(c *gin.Context) {
 		DeviceID:    req.DeviceID,
 		Task:        req.Task,
 		Zone:        strings.TrimSpace(req.Body.Zone),
-		ZoneType:    strings.TrimSpace(req.Body.ZoneType),
-		ZoneID:      strings.TrimSpace(req.Body.ZoneID),
+		ZoneType:    strconv.Itoa(req.Body.ZoneType),
+		ZoneID:      strconv.Itoa(req.Body.ZoneID),
 		HazardLevel: req.Body.HazardLevel,
 		CombatCount: req.Body.CombatCount,
 	}
