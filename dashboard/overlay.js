@@ -71,7 +71,7 @@ async function fetchKlineDir() {
 
         // 判断涨跌决定线段颜色（红涨绿跌）
         const isUp = rawData[rawData.length - 1].close >= rawData[0].close;
-        const lineColor = isUp ? '#ef4444' : '#22c55e';
+        const lineColor = isUp ? '#ff453a' : '#32d74b';
 
         const option = {
             animation: false,

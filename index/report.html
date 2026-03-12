@@ -4,7 +4,18 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Alas Report Court | 举报法庭</title>
+    <title>报告与法庭 - Alas Cloud</title>
+    <meta name="description" content="Alas Cloud 报告与法庭社区维护系统。针对异常数据和违规行为进行自动报告与人工审核，维护数据真实性。">
+    <meta name="keywords" content="碧蓝航线, Alas Cloud, 举报, 法庭, 数据透明, 社区维护">
+    <meta name="author" content="Alas Team">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://alas.nanoda.work/index/report.html">
+    <meta property="og:title" content="报告与法庭 - Alas Cloud">
+    <meta property="og:description" content="Alas Cloud 社区维护与违规举报系统。">
+
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <link rel="stylesheet" href="style.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,8 +25,11 @@
         rel="stylesheet" />
     <style>
         .court-title {
-            color: #ff4757;
-            text-shadow: 0 0 20px rgba(255, 71, 87, 0.5);
+            color: #ff375f;
+            text-shadow: none;
+            background: none;
+            -webkit-background-clip: initial;
+            background-clip: initial;
         }
 
         .section-header {
@@ -49,12 +63,13 @@
         }
 
         .suspect-card {
-            background: linear-gradient(145deg, rgba(255, 71, 87, 0.1), rgba(30, 41, 59, 0.4));
-            border: 1px solid rgba(255, 71, 87, 0.3);
-            border-radius: 1rem;
+            background: linear-gradient(145deg, rgba(255, 55, 95, 0.08), var(--card-bg));
+            border: 1px solid rgba(255, 55, 95, 0.2);
+            border-radius: var(--radius-lg);
             padding: 1.5rem;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
             position: relative;
             overflow: hidden;
             display: flex;
@@ -63,9 +78,9 @@
         }
 
         .suspect-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(255, 71, 87, 0.2);
-            border-color: #ff4757;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 55, 95, 0.4);
         }
 
         .suspect-header {
@@ -82,41 +97,41 @@
         }
 
         .suspect-id {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
             font-size: 0.8rem;
             color: var(--text-secondary);
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.08);
             padding: 0.2rem 0.5rem;
             border-radius: 0.3rem;
         }
 
         .report-count-badge {
-            background: #ff4757;
+            background: #ff375f;
             color: white;
-            font-weight: 700;
+            font-weight: 600;
             padding: 0.25rem 0.75rem;
             border-radius: 99px;
-            font-size: 0.9rem;
-            box-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
+            font-size: 0.85rem;
+            box-shadow: none;
         }
 
         .reason-box {
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.05);
             padding: 0.75rem;
-            border-radius: 0.5rem;
+            border-radius: var(--radius-sm);
             font-size: 0.9rem;
             color: var(--text-secondary);
-            border-left: 3px solid #ff4757;
+            border-left: 3px solid #ff375f;
             flex-grow: 1;
         }
 
         .vote-btn {
             width: 100%;
-            background: rgba(255, 71, 87, 0.15);
-            color: #ff4757;
-            border: 1px solid #ff4757;
+            background: rgba(255, 55, 95, 0.15);
+            color: #ff375f;
+            border: 1px solid rgba(255, 55, 95, 0.3);
             padding: 0.75rem;
-            border-radius: 0.5rem;
+            border-radius: var(--radius-sm);
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
@@ -127,9 +142,8 @@
         }
 
         .vote-btn:hover {
-            background: #ff4757;
+            background: #ff375f;
             color: white;
-            box-shadow: 0 0 15px rgba(255, 71, 87, 0.4);
         }
 
         /* Admin Panel */
@@ -187,22 +201,21 @@
         /* Input Styling Override */
         .input-group input {
             width: 100%;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid var(--card-border);
-            border-radius: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-sm);
             padding: 0.75rem 1rem;
             color: var(--text-primary);
             font-family: inherit;
             font-size: 1rem;
-            transition: all 0.3s ease;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
             outline: none;
         }
 
         .input-group input:focus {
             border-color: var(--accent-primary);
-            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.2);
-            background: rgba(15, 23, 42, 0.8);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .input-group input::placeholder {
@@ -235,9 +248,11 @@
 
         /* Modal Specific Styling */
         .modal-card {
-            background: rgba(15, 23, 42, 0.8) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.1) !important;
+            background: var(--card-bg) !important;
+            border: 1px solid var(--card-border) !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+            backdrop-filter: var(--glass-blur) !important;
+            -webkit-backdrop-filter: var(--glass-blur) !important;
         }
 
         .cancel-link {

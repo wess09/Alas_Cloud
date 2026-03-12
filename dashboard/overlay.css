@@ -1,8 +1,8 @@
 :root {
-    --red: #ef4444;
-    --green: #22c55e;
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
+    --red: #ff453a;
+    --green: #32d74b;
+    --text-primary: #ffffff;
+    --text-secondary: #ebebf599;
 }
 
 * {
@@ -15,9 +15,10 @@ body {
     /* OBS 需要完全透明的背景 */
     background: transparent;
     color: var(--text-primary);
-    font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
     overflow: hidden;
     padding: 8px;
+    -webkit-font-smoothing: antialiased;
 }
 
 .overlay-container {

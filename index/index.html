@@ -4,7 +4,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alas Telemetry | Command Center</title>
+  <title>Alas Cloud - 碧蓝航线自动化云监控仪表盘</title>
+  <meta name="description" content="Alas Cloud - 碧蓝航线自动化脚本实时数据监控中心。查看全服侵蚀指数、指挥官排行榜、战斗统计与实时运行数据。">
+  <meta name="keywords" content="碧蓝航线, Alas, Alas Cloud, Azur Lane, 自动化, 脚本, 侵蚀指数, 排行榜, 实时监控">
+  <meta name="author" content="Alas Team">
+  <meta name="robots" content="index, follow">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://alas.nanoda.work/">
+  <meta property="og:title" content="Alas Cloud - 碧蓝航线自动化云监控">
+  <meta property="og:description" content="实时监控 Alas 网络的各项指标，包括全服侵蚀指数、顶尖指挥官排名及详细战斗统计。">
+  <meta property="og:image" content="https://alas.nanoda.work/icon-cat.svg">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://alas.nanoda.work/">
+  <meta property="twitter:title" content="Alas Cloud - 碧蓝航线自动化云监控">
+  <meta property="twitter:description" content="实时监控 Alas 网络的各项指标，包括全服侵蚀指数、顶尖指挥官排名及详细战斗统计。">
+  <meta property="twitter:image" content="https://alas.nanoda.work/icon-cat.svg">
+
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -29,23 +48,23 @@
         <h1>Alas Telemetry</h1>
       </div>
       <p class="subtitle">Global Commander Statistics</p>
-      <div style="margin-top: 1rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+      <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
         <a href="leaderboard.html"
-          style="color: var(--accent-primary); text-decoration: none; font-weight: 600; border: 1px solid var(--accent-primary); padding: 0.5rem 1rem; border-radius: 9999px; transition: all 0.2s;"
-          onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'"
-          onmouseout="this.style.background='transparent'">
+          style="color: var(--text-primary); text-decoration: none; font-weight: 500; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.6rem 1.25rem; border-radius: 9999px; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); backdrop-filter: var(--glass-blur); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);"
+          onmouseover="this.style.transform='scale(1.02)'; this.style.background='rgba(10, 132, 255, 0.15)'; this.style.borderColor='rgba(10, 132, 255, 0.3)';"
+          onmouseout="this.style.transform='scale(1)'; this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';">
           🏆 View Leaderboard / 查看排行榜
         </a>
         <a href="global_history.html"
-          style="color: #10b981; text-decoration: none; font-weight: 600; border: 1px solid #10b981; padding: 0.5rem 1rem; border-radius: 9999px; transition: all 0.2s;"
-          onmouseover="this.style.background='rgba(16, 185, 129, 0.1)'"
-          onmouseout="this.style.background='transparent'">
+          style="color: var(--text-primary); text-decoration: none; font-weight: 500; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.6rem 1.25rem; border-radius: 9999px; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); backdrop-filter: var(--glass-blur); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);"
+          onmouseover="this.style.transform='scale(1.02)'; this.style.background='rgba(50, 215, 75, 0.15)'; this.style.borderColor='rgba(50, 215, 75, 0.3)';"
+          onmouseout="this.style.transform='scale(1)'; this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';">
           🌍 Global History / 大盘历史数据
         </a>
         <a href="azurstat.html"
-          style="color: #f59e0b; text-decoration: none; font-weight: 600; border: 1px solid #f59e0b; padding: 0.5rem 1rem; border-radius: 9999px; transition: all 0.2s;"
-          onmouseover="this.style.background='rgba(245, 158, 11, 0.1)'"
-          onmouseout="this.style.background='transparent'">
+          style="color: var(--text-primary); text-decoration: none; font-weight: 500; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.6rem 1.25rem; border-radius: 9999px; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); backdrop-filter: var(--glass-blur); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);"
+          onmouseover="this.style.transform='scale(1.02)'; this.style.background='rgba(255, 159, 10, 0.15)'; this.style.borderColor='rgba(255, 159, 10, 0.3)';"
+          onmouseout="this.style.transform='scale(1)'; this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';">
           📦 AzurStat 掉落统计
         </a>
       </div>

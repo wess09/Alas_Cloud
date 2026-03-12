@@ -73,12 +73,12 @@ function switchTab(sortType) {
     currentPage = 1;
 
     // Update UI
-    document.querySelector('#tab-rounds').className = sortType === 'rounds' ? 'btn' : 'btn btn-secondary';
-    document.querySelector('#tab-stamina').className = sortType === 'stamina' ? 'btn' : 'btn btn-secondary';
+    document.querySelector('#tab-rounds').className = sortType === 'rounds' ? 'segment-btn active' : 'segment-btn';
+    document.querySelector('#tab-stamina').className = sortType === 'stamina' ? 'segment-btn active' : 'segment-btn';
 
     // Highlight Column Header
     document.querySelector('#col-rounds').className = sortType === 'rounds' ? 'highlight' : '';
-    document.querySelector('#col-stamina').className = sortType === 'stamina' ? 'text-success highlight' : '';
+    document.querySelector('#col-stamina').className = sortType === 'stamina' ? 'highlight' : '';
 
     loadLeaderboard(currentPage);
 }
@@ -100,6 +100,11 @@ async function loadLeaderboard(page) {
         let html = '';
         data.data.forEach((entry, index) => {
             const rank = (page - 1) * pageSize + index + 1;
+            let rankClass = '';
+            if (rank === 1) rankClass = ' rank-1';
+            else if (rank === 2) rankClass = ' rank-2';
+            else if (rank === 3) rankClass = ' rank-3';
+
             // Highlight current user if device ID matches (backend returns truncated ID)
             const myDeviceId = localStorage.getItem('alas_device_id');
             const isMe = myDeviceId && entry.device_id && myDeviceId.startsWith(entry.device_id);
@@ -111,22 +116,27 @@ async function loadLeaderboard(page) {
 
             html += `
                 <tr ${rowClass}>
-                    <td class="rank-cell">#${rank}</td>
+                    <td><div class="rank-badge${rankClass}">#${rank}</div></td>
                     <td>
-                        <span style="font-weight:600;">${escapeHtml(entry.username) || '未知指挥官'}</span>
-                        <br><span class="code" style="font-size:0.7em; opacity:0.6;">${entry.device_id.substring(0, 8)}...</span>
+                        <div class="user-info">
+                            <div class="user-avatar">${(entry.username && entry.username.length > 0) ? entry.username[0].toUpperCase() : '?'}</div>
+                            <div>
+                                <div class="user-name">${escapeHtml(entry.username) || '未知指挥官'}</div>
+                                <div class="user-id">${entry.device_id.substring(0, 8)}...</div>
+                            </div>
+                        </div>
                     </td>
-                    <td class="${currentSort === 'rounds' ? 'highlight' : ''}">${formatNumber(entry.battle_rounds)}</td>
-                    <td class="text-success ${currentSort === 'stamina' ? 'highlight' : ''}">${(entry.net_stamina_gain >= 0 ? '+' : '') + formatNumber(entry.net_stamina_gain)}</td>
-                    <td>${formatNumber(entry.akashi_encounters)}</td>
+                    <td class="metric-cell ${currentSort === 'rounds' ? 'highlight' : ''}">${formatNumber(entry.battle_rounds)}</td>
+                    <td class="metric-cell" style="color: #32d74b; font-weight: ${currentSort === 'stamina' ? '600' : '500'};">${(entry.net_stamina_gain >= 0 ? '+' : '') + formatNumber(entry.net_stamina_gain)}</td>
+                    <td class="metric-cell">${formatNumber(entry.akashi_encounters)}</td>
                     <td style="color:var(--text-secondary); font-size:0.85em;">${dateStr}</td>
                     <td>
-                        <div style="display:flex; gap:0.25rem;">
-                            <a href="history.html?device_id=${entry.device_id}" class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.8em; height: auto; text-decoration: none;">
-                                📜 履历
+                        <div style="display:flex; gap:0.5rem; align-items: center;">
+                            <a href="history.html?device_id=${entry.device_id}" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8em; height: auto; text-decoration: none; border-radius: 999px; color: #0A84FF; border-color: rgba(10,132,255,0.2); background: rgba(10,132,255,0.05);">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:0.25rem;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> 履历
                             </a>
-                            <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.8em; height: auto;" onclick="reportUser('${entry.device_id}', '${escapeHtml(entry.username)}')">
-                                🚩 举报
+                            <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8em; height: auto; border-radius: 999px; color: #ff375f; border-color: rgba(255,55,95,0.2); background: rgba(255,55,95,0.05);" onclick="reportUser('${entry.device_id}', '${escapeHtml(entry.username)}')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:0.25rem;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg> 举报
                             </button>
                         </div>
                     </td>

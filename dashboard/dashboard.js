@@ -1,11 +1,4 @@
-// ============================================================
-//  侵蚀体力大盘 – dashboard.js
-//  ECharts K线图 + 技术指标 (MA/BOLL/MACD/KDJ)
-// ============================================================
-
 const API_BASE = 'https://alas-apiv2.nanoda.work';
-
-// ---- 全局状态 ----
 let currentRange = 'day';       // day | week | month
 let currentPeriod = '1m';       // 1m | 5m | 1h | 1d
 let currentChartType = 'candlestick'; // candlestick | line | area
@@ -327,10 +320,10 @@ function renderMainChart() {
                 return [o, c, l, h];
             }),
             itemStyle: {
-                color: '#ef4444',    // 阳线（收>开）
-                color0: '#22c55e',    // 阴线
-                borderColor: '#ef4444',
-                borderColor0: '#22c55e',
+                color: '#ff453a',    // 阳线（收>开），A股红色
+                color0: '#32d74b',   // 阴线（收<开），A股绿色
+                borderColor: '#ff453a',
+                borderColor0: '#32d74b',
             },
         });
     } else if (currentChartType === 'line') {
@@ -384,32 +377,32 @@ function renderMainChart() {
         backgroundColor: 'transparent',
         tooltip: {
             trigger: 'axis',
-            axisPointer: { type: 'cross', crossStyle: { color: '#94a3b8' }, lineStyle: { color: 'rgba(148,163,184,0.3)' } },
-            backgroundColor: 'rgba(17, 24, 39, 0.95)',
-            borderColor: 'rgba(99, 102, 241, 0.3)',
+            axisPointer: { type: 'cross', crossStyle: { color: 'var(--text-secondary)' }, lineStyle: { color: 'rgba(235,235,245,0.2)' } },
+            backgroundColor: 'rgba(28, 28, 30, 0.95)',
+            borderColor: 'rgba(255, 255, 255, 0.12)',
             borderWidth: 1,
-            textStyle: { color: '#f1f5f9', fontFamily: 'Outfit, sans-serif', fontSize: 12 },
+            textStyle: { color: 'var(--text-primary)', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif', fontSize: 12 },
             formatter: function (params) {
                 if (!params || params.length === 0) return '';
                 const idx = params[0].dataIndex;
                 const d = rawData[idx];
                 if (!d) return '';
-                let html = `<div style="font-weight:600;margin-bottom:6px;color:#a5b4fc">${d.minute_key.replace('T', ' ')}</div>`;
-                html += `<div style="display:grid;grid-template-columns:auto auto;gap:2px 12px;font-family:'JetBrains Mono',monospace;font-size:11px">`;
-                html += `<span style="color:#94a3b8">开盘</span><span>${formatNum(d.open, 0)}</span>`;
-                html += `<span style="color:#94a3b8">收盘</span><span>${formatNum(d.close, 0)}</span>`;
-                html += `<span style="color:#94a3b8">最高</span><span style="color:#ef4444">${formatNum(d.high, 0)}</span>`;
-                html += `<span style="color:#94a3b8">最低</span><span style="color:#22c55e">${formatNum(d.low, 0)}</span>`;
-                html += `<span style="color:#94a3b8">总量</span><span>${formatNum(d.volume, 0)}</span>`;
-                html += `<span style="color:#94a3b8">上报</span><span style="color:#22c55e">${d.reported_count} 人</span>`;
-                html += `<span style="color:#94a3b8">补全</span><span style="color:#eab308">${d.filled_count} 人</span>`;
+                let html = `<div style="font-weight:600;margin-bottom:6px;color:var(--accent-light)">${d.minute_key.replace('T', ' ')}</div>`;
+                html += `<div style="display:grid;grid-template-columns:auto auto;gap:2px 12px;font-family:ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;font-size:11px">`;
+                html += `<span style="color:var(--text-secondary)">开盘</span><span style="color:var(--text-primary)">${formatNum(d.open, 0)}</span>`;
+                html += `<span style="color:var(--text-secondary)">收盘</span><span style="color:var(--text-primary)">${formatNum(d.close, 0)}</span>`;
+                html += `<span style="color:var(--text-secondary)">最高</span><span style="color:var(--red)">${formatNum(d.high, 0)}</span>`;
+                html += `<span style="color:var(--text-secondary)">最低</span><span style="color:var(--green)">${formatNum(d.low, 0)}</span>`;
+                html += `<span style="color:var(--text-secondary)">总量</span><span style="color:var(--text-primary)">${formatNum(d.volume, 0)}</span>`;
+                html += `<span style="color:var(--text-secondary)">上报</span><span style="color:var(--green)">${d.reported_count} 人</span>`;
+                html += `<span style="color:var(--text-secondary)">补全</span><span style="color:var(--yellow)">${d.filled_count} 人</span>`;
                 html += `</div>`;
                 return html;
             },
         },
         legend: {
             data: series.map(s => s.name),
-            textStyle: { color: '#94a3b8', fontSize: 11 },
+            textStyle: { color: 'var(--text-secondary)', fontSize: 11, fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' },
             top: 8,
             right: 16,
             itemWidth: 14,
@@ -424,9 +417,9 @@ function renderMainChart() {
         xAxis: {
             type: 'category',
             data: categories,
-            axisLine: { lineStyle: { color: 'rgba(148,163,184,0.15)' } },
+            axisLine: { lineStyle: { color: 'rgba(235,235,245,0.15)' } },
             axisTick: { show: false },
-            axisLabel: { color: '#64748b', fontSize: 10, fontFamily: 'JetBrains Mono' },
+            axisLabel: { color: 'var(--text-secondary)', fontSize: 10, fontFamily: 'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace' },
             splitLine: { show: false },
         },
         yAxis: {
@@ -456,7 +449,8 @@ function renderVolumeChart() {
 
     const volumeColors = rawData.map((d, i) => {
         if (i === 0) return 'rgba(99, 102, 241, 0.6)';
-        return d.close >= rawData[i - 1].close ? 'rgba(239, 68, 68, 0.6)' : 'rgba(34, 197, 94, 0.6)';
+        const isUp = d.close >= rawData[i - 1].close;
+        return isUp ? 'rgba(255, 69, 58, 0.6)' : 'rgba(50, 215, 75, 0.6)'; // A股：红涨绿跌
     });
 
     const option = {
@@ -465,13 +459,13 @@ function renderVolumeChart() {
         tooltip: {
             trigger: 'axis',
             axisPointer: { type: 'shadow' },
-            backgroundColor: 'rgba(17, 24, 39, 0.95)',
-            borderColor: 'rgba(99, 102, 241, 0.3)',
+            backgroundColor: 'rgba(28, 28, 30, 0.95)',
+            borderColor: 'rgba(255, 255, 255, 0.12)',
             borderWidth: 1,
-            textStyle: { color: '#f1f5f9', fontSize: 11 },
+            textStyle: { color: 'var(--text-primary)', fontSize: 11, fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' },
             formatter: function (params) {
                 if (!params[0]) return '';
-                return `<span style="color:#94a3b8">总量:</span> ${formatNum(params[0].value, 0)}`;
+                return `<span style="color:var(--text-secondary)">总量:</span> <span style="font-family:ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;">${formatNum(params[0].value, 0)}</span>`;
             },
         },
         grid: {
@@ -483,7 +477,7 @@ function renderVolumeChart() {
         xAxis: {
             type: 'category',
             data: categories,
-            axisLine: { lineStyle: { color: 'rgba(148,163,184,0.15)' } },
+            axisLine: { lineStyle: { color: 'rgba(235,235,245,0.15)' } },
             axisTick: { show: false },
             axisLabel: { show: false },
             splitLine: { show: false },
@@ -493,8 +487,8 @@ function renderVolumeChart() {
             scale: true,
             axisLine: { show: false },
             axisTick: { show: false },
-            axisLabel: { color: '#64748b', fontSize: 10, fontFamily: 'JetBrains Mono' },
-            splitLine: { lineStyle: { color: 'rgba(148,163,184,0.06)' } },
+            axisLabel: { color: 'var(--text-secondary)', fontSize: 10, fontFamily: 'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace' },
+            splitLine: { lineStyle: { color: 'rgba(235,235,245,0.06)' } },
         },
         dataZoom: [
             {
@@ -531,7 +525,7 @@ function renderIndicatorChart() {
                 type: 'bar',
                 data: macdData.macd.map(v => ({
                     value: v,
-                    itemStyle: { color: v !== null && v >= 0 ? 'rgba(239, 68, 68, 0.7)' : 'rgba(34, 197, 94, 0.7)' },
+                    itemStyle: { color: v !== null && v >= 0 ? 'rgba(255, 69, 58, 0.7)' : 'rgba(50, 215, 75, 0.7)' },
                 })),
                 barMaxWidth: 6,
             },
@@ -541,7 +535,7 @@ function renderIndicatorChart() {
                 data: macdData.dif,
                 smooth: true,
                 symbol: 'none',
-                lineStyle: { width: 1.2, color: '#6366f1' },
+                lineStyle: { width: 1.2, color: 'var(--accent)' },
             },
             {
                 name: 'DEA',
@@ -549,7 +543,7 @@ function renderIndicatorChart() {
                 data: macdData.dea,
                 smooth: true,
                 symbol: 'none',
-                lineStyle: { width: 1.2, color: '#f59e0b' },
+                lineStyle: { width: 1.2, color: 'var(--yellow)' },
             },
         );
     }
@@ -575,14 +569,14 @@ function renderIndicatorChart() {
         backgroundColor: 'transparent',
         tooltip: {
             trigger: 'axis',
-            backgroundColor: 'rgba(17, 24, 39, 0.95)',
-            borderColor: 'rgba(99, 102, 241, 0.3)',
+            backgroundColor: 'rgba(28, 28, 30, 0.95)',
+            borderColor: 'rgba(255, 255, 255, 0.12)',
             borderWidth: 1,
-            textStyle: { color: '#f1f5f9', fontSize: 11 },
+            textStyle: { color: 'var(--text-primary)', fontSize: 11, fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' },
         },
         legend: {
             data: series.map(s => s.name),
-            textStyle: { color: '#94a3b8', fontSize: 11 },
+            textStyle: { color: 'var(--text-secondary)', fontSize: 11, fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' },
             top: 4,
             right: 16,
             itemWidth: 14,
@@ -597,7 +591,7 @@ function renderIndicatorChart() {
         xAxis: {
             type: 'category',
             data: categories,
-            axisLine: { lineStyle: { color: 'rgba(148,163,184,0.15)' } },
+            axisLine: { lineStyle: { color: 'rgba(235,235,245,0.15)' } },
             axisTick: { show: false },
             axisLabel: { show: false },
             splitLine: { show: false },
@@ -607,8 +601,8 @@ function renderIndicatorChart() {
             scale: true,
             axisLine: { show: false },
             axisTick: { show: false },
-            axisLabel: { color: '#64748b', fontSize: 10, fontFamily: 'JetBrains Mono' },
-            splitLine: { lineStyle: { color: 'rgba(148,163,184,0.06)' } },
+            axisLabel: { color: 'var(--text-secondary)', fontSize: 10, fontFamily: 'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace' },
+            splitLine: { lineStyle: { color: 'rgba(235,235,245,0.06)' } },
         },
         dataZoom: [
             {

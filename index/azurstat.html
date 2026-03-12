@@ -4,7 +4,18 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AzurStat 掉落统计</title>
+    <title>侵蚀分布统计 - Alas Cloud</title>
+    <meta name="description" content="Alas Cloud 侵蚀分布统计。实时查看各海域、各章节的侵蚀状态分布，深度分析当前全服运行状态。">
+    <meta name="keywords" content="碧蓝航线, Alas Cloud, 侵蚀指数, 统计分析, 侵蚀分布">
+    <meta name="author" content="Alas Team">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://alas.nanoda.work/index/azurstat.html">
+    <meta property="og:title" content="侵蚀分布统计 - Alas Cloud">
+    <meta property="og:description" content="实时监控各章节海域的侵蚀状态分布。">
+
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <link rel="stylesheet" href="style.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,8 +25,11 @@
         rel="stylesheet" />
     <style>
         .page-title {
-            color: #f59e0b;
-            text-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
+            color: #ff9f0a;
+            text-shadow: none;
+            background: none;
+            -webkit-background-clip: initial;
+            background-clip: initial;
         }
 
         .nav-link {
@@ -51,24 +65,27 @@
 
         .input-group label {
             color: var(--text-secondary);
-            font-size: 0.875rem;
+            font-size: 0.85rem;
+            font-weight: 500;
         }
 
         .input-group input,
         .input-group select {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--card-border);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 0.75rem;
-            border-radius: 0.75rem;
+            border-radius: var(--radius-sm);
             color: var(--text-primary);
             min-height: 46px;
+            transition: all 0.2s;
         }
 
         .input-group input:focus,
         .input-group select:focus {
             outline: none;
-            border-color: rgba(245, 158, 11, 0.6);
-            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .filter-actions {
@@ -79,26 +96,25 @@
         }
 
         .btn {
-            background: #f59e0b;
-            color: #111827;
+            background: var(--accent-primary);
+            color: white;
             border: none;
             padding: 0.75rem 1.25rem;
-            border-radius: 0.75rem;
-            font-weight: 700;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
             min-height: 46px;
         }
 
         .btn:hover {
-            filter: brightness(1.08);
-            box-shadow: 0 0 18px rgba(245, 158, 11, 0.2);
+            background: #2392ff;
         }
 
         .btn-secondary {
             background: rgba(255, 255, 255, 0.08);
             color: var(--text-primary);
-            border: 1px solid var(--card-border);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .section-header {
@@ -161,10 +177,11 @@
             gap: 0.4rem;
             padding: 0.35rem 0.75rem;
             border-radius: 9999px;
-            background: rgba(245, 158, 11, 0.12);
-            border: 1px solid rgba(245, 158, 11, 0.25);
-            color: #fbbf24;
+            background: rgba(255, 159, 10, 0.15);
+            border: 1px solid rgba(255, 159, 10, 0.2);
+            color: #ff9f0a;
             font-size: 0.85rem;
+            font-weight: 500;
         }
 
         .status-chip::before {

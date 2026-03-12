@@ -4,7 +4,19 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Alas 数据统计 | 排行榜</title>
+    <title>指挥官排行榜 - Alas Cloud</title>
+    <meta name="description" content="Alas Cloud 指挥官排行榜。查看表现卓越的前 100 名指挥官，基于战斗轮次和净赚体力的实时排名统计。">
+    <meta name="keywords" content="碧蓝航线, Alas Cloud, 排行榜, 指挥官, 侵蚀指数, 战斗统计">
+    <meta name="author" content="Alas Team">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://alas.nanoda.work/index/leaderboard.html">
+    <meta property="og:title" content="指挥官排行榜 - Alas Cloud">
+    <meta property="og:description" content="实时查看 Alas 网络中的指挥官表现排名。">
+    <meta property="og:image" content="https://alas.nanoda.work/icon-users.svg">
+
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <link rel="stylesheet" href="style.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,37 +26,78 @@
         rel="stylesheet" />
     <style>
         /* Leaderboard specific styles */
-        .pagination {
+        .leaderboard-hero {
             display: flex;
+            flex-direction: column;
+            align-items: center;
             justify-content: center;
-            gap: 1rem;
-            margin-top: 2rem;
+            padding: 4rem 2rem;
+            text-align: center;
+            position: relative;
+            z-index: 2;
         }
 
-        .pagination button {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--card-border);
+        .leaderboard-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.7) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 1rem;
+            text-shadow: 0 4px 32px rgba(255, 255, 255, 0.1);
+        }
+
+        .leaderboard-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        /* Profile Management Form */
+        .profile-section {
+            background: rgba(28, 28, 30, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 3rem;
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .profile-icon {
+            font-size: 1.5rem;
+            width: 2.5rem;
+            height: 2.5rem;
+            background: rgba(10, 132, 255, 0.15);
+            color: #0A84FF;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profile-title {
+            font-size: 1.25rem;
+            font-weight: 600;
             color: var(--text-primary);
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            backdrop-filter: blur(5px);
-            transition: all 0.2s;
-        }
-
-        .pagination button:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .pagination button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
         }
 
         .user-form {
-            gap: 1rem;
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 1.5rem;
             align-items: end;
         }
 
@@ -56,74 +109,339 @@
 
         .input-group label {
             color: var(--text-secondary);
-            font-size: 0.875rem;
+            font-size: 0.85rem;
+            font-weight: 500;
         }
 
         .input-group input {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--card-border);
-            padding: 0.75rem;
-            border-radius: 0.5rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.875rem 1rem;
+            border-radius: var(--radius-sm);
             color: var(--text-primary);
-            font-family: 'JetBrains Mono', monospace;
-            min-width: 250px;
+            font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+            font-size: 1rem;
+            transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+            outline: none;
         }
 
-        .btn {
-            background: var(--accent-primary);
+        .input-group input:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+        }
+
+        .btn-save {
+            background: #0A84FF;
             color: white;
             border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 500;
+            padding: 0.875rem 2rem;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 1rem;
             cursor: pointer;
-            transition: all 0.2s;
-            height: 46px;
-            /* Align with input */
+            transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+            height: 50px;
         }
 
-        .btn:hover {
-            filter: brightness(1.1);
-            box-shadow: 0 0 15px var(--glow-color);
+        .btn-save:hover {
+            background: #2392ff;
+            transform: scale(1.02);
+            box-shadow: 0 4px 14px rgba(10, 132, 255, 0.3);
         }
 
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
+        .btn-save:active {
+            transform: scale(0.98);
         }
 
-        .rank-cell {
-            font-weight: 700;
-            color: var(--accent-secondary);
+        /* Sorting Segments (Apple style segmented control) */
+        .segmented-control {
+            display: inline-flex;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0.25rem;
+            border-radius: 999px;
+            margin-bottom: 2rem;
+            position: relative;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .segment-btn {
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 999px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .segment-btn.active {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .segment-btn:hover:not(.active) {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Redesigned Leaderboard Table */
+        .leaderboard-container {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            box-shadow: var(--shadow-lg);
+            animation: fadeIn 0.5s ease-out backwards;
+            animation-delay: 0.2s;
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            text-align: left;
+        }
+
+        .data-table th {
+            padding: 1.25rem 1.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.85rem;
+            letter-spacing: 0.02em;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            padding: 1.25rem 1.5rem;
+            color: var(--text-primary);
+            font-weight: 400;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            white-space: nowrap;
+            transition: background 0.2s;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .data-table tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Rank Badge */
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         /* Top 3 Highlighting */
-        tbody tr:nth-child(1) .rank-cell {
-            color: #ffd700;
-            font-size: 1.2em;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        .rank-badge.rank-1 {
+            background: linear-gradient(135deg, #FFD700 0%, #FDB931 100%);
+            color: #000;
+            border: none;
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+            text-shadow: none;
         }
 
-        tbody tr:nth-child(2) .rank-cell {
-            color: #c0c0c0;
-            font-size: 1.1em;
+        .rank-badge.rank-2 {
+            background: linear-gradient(135deg, #E2E2E2 0%, #C0C0C0 100%);
+            color: #000;
+            border: none;
+            box-shadow: 0 4px 12px rgba(192, 192, 192, 0.2);
         }
 
-        tbody tr:nth-child(3) .rank-cell {
-            color: #cd7f32;
-            font-size: 1.1em;
+        .rank-badge.rank-3 {
+            background: linear-gradient(135deg, #FFB75E 0%, #ED8F03 100%);
+            color: #fff;
+            border: none;
+            box-shadow: 0 4px 12px rgba(237, 143, 3, 0.3);
         }
 
-        .nav-link {
+        /* User Info styling inside table */
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1d1d1f, #2c2c2e);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .user-name {
+            font-weight: 500;
+            font-size: 1rem;
+            color: var(--text-primary);
+        }
+
+        .user-id {
+            font-size: 0.8rem;
             color: var(--text-secondary);
-            text-decoration: none;
+            font-family: ui-monospace, SFMono-Regular, SF Mono, monospace;
+            opacity: 0.8;
+        }
+
+        .data-table .highlight {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+
+        /* Metrics styling */
+        .metric-cell {
+            font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+        }
+
+        /* Pagination */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .page-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+            font-weight: 500;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.05);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            background: transparent;
+        }
+
+        .page-info {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* Top Nav Links */
+        .top-nav {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            right: 2rem;
+            display: flex;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        .nav-pill {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            transition: color 0.2s;
+            color: var(--text-primary);
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0.6rem 1.25rem;
+            border-radius: 9999px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            backdrop-filter: var(--glass-blur);
+            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
-        .nav-link:hover {
-            color: var(--accent-primary);
+        .nav-pill:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.02);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .nav-pill.danger {
+            color: #ff375f;
+            background: rgba(255, 55, 95, 0.08);
+            border-color: rgba(255, 55, 95, 0.15);
+        }
+
+        .nav-pill.danger:hover {
+            background: rgba(255, 55, 95, 0.15);
+            border-color: rgba(255, 55, 95, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .user-form {
+                grid-template-columns: 1fr;
+            }
+
+            .top-nav {
+                position: relative;
+                top: 0;
+                left: 0;
+                right: 0;
+                margin-bottom: 2rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .leaderboard-title {
+                font-size: 2.5rem;
+            }
+
+            .leaderboard-hero {
+                padding: 2rem 1rem;
+            }
         }
     </style>
 </head>
@@ -135,61 +453,97 @@
         <div class="blob blob-3"></div>
     </div>
     <div class="container">
-        <header>
-            <div style="position: absolute; left: 0; top: 0;">
-                <a href="index.html" class="nav-link">← 返回仪表盘</a>
-            </div>
-            <div style="position: absolute; right: 0; top: 0;">
-                <a href="report.html" class="nav-link" style="color: #ff4757;">⚖️ 举报法庭 / Report Court →</a>
-            </div>
-            <div class="logo">
-                <span class="icon">🏆</span>
-                <h1 class="leaderboard-title">指挥官排行榜</h1>
-            </div>
-            <p class="subtitle">Hall of Fame</p>
-        </header>
-
-        <!-- Profile Management -->
-        <div class="card" style="margin-bottom: 3rem; overflow: visible;">
-            <div class="details-header">
-                <h3>更新个人信息</h3>
-            </div>
-            <div style="padding: 1.5rem;">
-                <div class="user-form">
-                    <div class="input-group">
-                        <label>Device ID / 设备 ID</label>
-                        <input type="text" id="device-id" placeholder="" />
-                    </div>
-                    <div class="input-group">
-                        <label>Username / 昵称</label>
-                        <input type="text" id="username" placeholder="输入您想展示的昵称" />
-                    </div>
-                    <button class="btn" onclick="updateProfile()">
-                        保存 / Save
-                    </button>
-                </div>
-                <p id="form-message" style="margin-top: 1rem; min-height: 1.5em;"></p>
-                <p style="font-size: 0.8em; color: var(--text-secondary); margin-top: 0.5rem;">
-                    * 默认昵称会根据您的 IP 位置自动生成 (例如：来自东京的猫娘小萝莉)，这大约需要几分钟。<br>
-                    * 您可以手动输入设备 ID 来覆盖默认昵称。
-                </p>
-            </div>
+        <!-- New Top Nav -->
+        <div class="top-nav">
+            <a href="index.html" class="nav-pill">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                返回仪表盘
+            </a>
+            <a href="report.html" class="nav-pill danger">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                举报法庭 / Report Court
+            </a>
         </div>
 
-        <!-- Sorting Tabs -->
-        <div style="margin-bottom: 1.5rem; display: flex; justify-content: center; gap: 1rem;">
-            <button id="tab-rounds" class="btn" onclick="switchTab('rounds')">⚔️ 战斗轮次 (Battle Rounds)</button>
-            <button id="tab-stamina" class="btn btn-secondary" onclick="switchTab('stamina')">⚡ 净赚体力 (Net
-                Stamina)</button>
+        <div class="leaderboard-hero">
+            <h1 class="leaderboard-title">指挥官排行榜</h1>
+            <p class="leaderboard-subtitle">探索 Alas 网络的顶尖指挥官。排名基于个人对总战斗轮次和净赚体力的贡献。</p>
+        </div>
+
+        <!-- Profile Management -->
+        <div class="profile-section">
+            <div class="profile-header">
+                <div class="profile-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </div>
+                <h3 class="profile-title">管理您的个人资料</h3>
+            </div>
+            <div class="user-form">
+                <div class="input-group">
+                    <label>设备 ID / Device ID</label>
+                    <input type="text" id="device-id" placeholder="输入自动生成的 ID" />
+                </div>
+                <div class="input-group">
+                    <label>显示昵称 / Username</label>
+                    <input type="text" id="username" placeholder="选择一个公开显示昵称" />
+                </div>
+                <button class="btn-save" onclick="updateProfile()">
+                    保存更改
+                </button>
+            </div>
+            <p id="form-message" style="margin-top: 1rem; min-height: 1.5em; font-size: 0.9rem; color: #32d74b;"></p>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem; line-height: 1.5;">
+                <span style="opacity: 0.8;">* 默认昵称会根据您的 IP 位置自动生成（例如：来自东京的猫娘小萝莉），这大约需要几分钟。<br>
+                    * 输入您本地日志中的设备 ID (Device ID) 以绑定您的统计数据。</span>
+            </p>
+        </div>
+
+        <div style="text-align: center;">
+            <!-- Sorting Tabs -->
+            <div class="segmented-control">
+                <button id="tab-rounds" class="segment-btn active" onclick="switchTab('rounds')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14.5 17.5L3 6V3h3l11.5 11.5"></path>
+                        <path d="M13 19l6-6"></path>
+                        <path d="M16 16l4 4"></path>
+                        <path d="M19 21l2-2"></path>
+                        <path d="M11 21l-3-3"></path>
+                        <path d="M8 8l-5 5"></path>
+                        <path d="M3 17l4-4"></path>
+                        <path d="M9 13l4-4"></path>
+                    </svg>
+                    战斗轮次 (Battle Rounds)
+                </button>
+                <button id="tab-stamina" class="segment-btn" onclick="switchTab('stamina')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                    净赚体力 (Net Stamina)
+                </button>
+            </div>
         </div>
 
         <!-- Leaderboard Table -->
-        <div class="card details-card">
+        <div class="leaderboard-container">
             <div class="table-responsive">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th style="width: 80px;">排名</th>
+                            <th style="width: 80px; text-align: center;">排名</th>
                             <th>指挥官</th>
                             <th id="col-rounds" class="highlight">战斗轮次</th>
                             <th id="col-stamina">净赚体力</th>
@@ -203,20 +557,42 @@
                     </tbody>
                 </table>
             </div>
+
+            <div class="pagination-container">
+                <div class="page-info">
+                    <span id="page-indicator">第 1 页</span>
+                </div>
+                <div class="pagination-controls">
+                    <button id="prev-btn" class="page-btn" onclick="changePage(-1)" disabled>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <button id="next-btn" class="page-btn" onclick="changePage(1)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <div class="pagination">
-            <button id="prev-btn" onclick="changePage(-1)" disabled>上一页</button>
-            <span id="page-indicator" style="display: flex; align-items: center; color: var(--text-secondary);">第 1
-                页</span>
-            <button id="next-btn" onclick="changePage(1)">下一页</button>
-        </div>
-
-        <footer>
+        <footer
+            style="margin-top: 4rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem; padding: 2rem;">
             <p>数据由 Alas Cloud API 提供</p>
         </footer>
     </div>
-    <script src="leaderboard.js?v=3"></script>
+    <script src="leaderboard.js?v=4"></script>
+
+    <!-- Override specific JS injection styles for the new rank cells to not conflict -->
+    <script>
+        // Intercepting any DOM modifications for the rank-cell class adding from existing JS
+        // The original leaderboard.js adds class "rank-cell" and colors text directly.
+        // We handle styles natively in CSS via rank-badge now.
+        // This is a stylistic patch that will run after leaderboard.js loads if needed.
+    </script>
 </body>
 
 </html>

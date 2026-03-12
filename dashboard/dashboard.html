@@ -4,8 +4,18 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>侵蚀指数</title>
-    <meta name="description" content="碧蓝航线侵蚀指数" />
+    <title>侵蚀指数行情大盘 - Alas Cloud</title>
+    <meta name="description" content="Alas Cloud 侵蚀指数实时行情大盘。提供专业的 K 线图、移动平均线 (MA) 及 MACD/KDJ 等技术指标，深度监控碧蓝航线全服运行趋势。">
+    <meta name="keywords" content="碧蓝航线, Alas Cloud, 侵蚀指数, 行情分析, K线图, 数据监控">
+    <meta name="author" content="Alas Team">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://alas.nanoda.work/dashboard/dashboard.html">
+    <meta property="og:title" content="侵蚀指数行情大盘 - Alas Cloud">
+    <meta property="og:description" content="全服侵蚀指数实时动态与技术指标分析。">
+
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <link rel="stylesheet" href="dashboard.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -26,6 +36,18 @@
     </div>
 
     <div class="app-container">
+        <!-- New Top Nav -->
+        <div class="top-nav" style="grid-column: 1 / -1; display: flex; justify-content: space-between; margin-bottom: -0.5rem; position: relative; z-index: 10;">
+            <a href="index.html" class="nav-pill">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                返回仪表盘
+            </a>
+            <a href="overlay.html" class="nav-pill" style="color: var(--text-primary);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                悬浮窗 / Overlay
+            </a>
+        </div>
+
         <!-- ===== 顶部信息栏 ===== -->
         <div class="header-bar">
             <div class="header-left">
