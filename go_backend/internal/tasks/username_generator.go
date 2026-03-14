@@ -45,12 +45,12 @@ func processNextUser() {
 	// 使用子查询排除已存在的 Profile
 	// 注意：这里需要去重，取最新的 IP
 	err := database.DB.Raw(`
-		SELECT t.device_id, t.ip_address
+		SELECT t.device_id, ANY_VALUE(t.ip_address) as ip_address
 		FROM telemetry_data t
 		LEFT JOIN user_profiles u ON t.device_id = u.device_id
 		WHERE u.device_id IS NULL
 		GROUP BY t.device_id
-		ORDER BY t.created_at DESC
+		ORDER BY MAX(t.created_at) DESC
 		LIMIT 1
 	`).Scan(&results).Error
 

@@ -11,7 +11,7 @@ import (
 // GetAutoUpdateStatus 获取当前自动更新的状态 (公开)
 func GetAutoUpdateStatus(c *gin.Context) {
 	var config models.SystemConfig
-	result := database.DB.Where("key = ?", "auto_update").First(&config)
+	result := database.DB.Where("`key` = ?", "auto_update").First(&config)
 	if result.Error != nil {
 		// 如果没有找到，默认返回 false
 		c.JSON(http.StatusOK, false)
@@ -24,7 +24,7 @@ func GetAutoUpdateStatus(c *gin.Context) {
 // AdminGetAutoUpdateStatus 获取当前自动更新的状态 (管理员)
 func AdminGetAutoUpdateStatus(c *gin.Context) {
 	var config models.SystemConfig
-	result := database.DB.Where("key = ?", "auto_update").First(&config)
+	result := database.DB.Where("`key` = ?", "auto_update").First(&config)
 	if result.Error != nil {
 		c.JSON(http.StatusOK, gin.H{"auto_update": false})
 		return
@@ -43,7 +43,7 @@ func AdminToggleAutoUpdate(c *gin.Context) {
 	}
 
 	var config models.SystemConfig
-	result := database.DB.Where("key = ?", "auto_update").First(&config)
+	result := database.DB.Where("`key` = ?", "auto_update").First(&config)
 	if result.Error != nil {
 		// 不存在则创建
 		config = models.SystemConfig{
