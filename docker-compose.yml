@@ -8,12 +8,9 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
-    volumes:
-      # 数据持久化 - 挂载整个数据目录
-      - ./data:/app/data
     environment:
       - TZ=Asia/Shanghai
-      - DATA_DIR=/app/data
+      - DATABASE_URL=root:Dn6p6mCb5QPxXxXVHcpY@tcp(mysql:3306)/alas_cloud?charset=utf8mb4&parseTime=True&loc=Local
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
