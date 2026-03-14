@@ -11,6 +11,9 @@ services:
     environment:
       - TZ=Asia/Shanghai
       - DATABASE_URL=root:Dn6p6mCb5QPxXxXVHcpY@tcp(mysql:3306)/alas_cloud?charset=utf8mb4&parseTime=True&loc=Local
+      - SQLITE_DB_PATH=/app/data/alas_cloud.db
+    volumes:
+      - ./go_backend/data:/app/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
