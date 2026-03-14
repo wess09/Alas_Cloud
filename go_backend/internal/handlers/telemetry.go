@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm/clause"
 )
 
 // ---- SSE 广播器 ----
@@ -123,9 +124,25 @@ func SubmitTelemetry(c *gin.Context) {
 		NetStaminaGain:    req.NetStaminaGain,
 	}
 
-	if err := database.DB.Where(&models.TelemetryData{DeviceID: req.DeviceID, InstanceID: req.InstanceID, Month: req.Month}).
-		Assign(data).
-		FirstOrCreate(&data).Error; err != nil {
+	// 使用 OnConflict 显式指定更新列，避免触发 MySQL 0000-00-00 报错
+	if err := database.DB.Clauses(clause.OnConflict{
+		Columns: []clause.Column{
+			{Name: "device_id"},
+			{Name: "instance_id"},
+			{Name: "month"},
+		},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"battle_count",
+			"battle_rounds",
+			"sortie_cost",
+			"akashi_encounters",
+			"akashi_probability",
+			"average_stamina",
+			"net_stamina_gain",
+			"ip_address",
+			"updated_at",
+		}),
+	}).Create(&data).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -321,9 +338,11 @@ func GetTelemetryHistory(c *gin.Context) {
 	}
 
 	// 获取用户名（如果有）
-	var profile models.UserProfile
-	database.DB.Where("device_id = ?", fullID).First(&profile)
-	username := profile.Username
+	var username string
+	var p models.UserProfile
+	if err := database.DB.Where("device_id = ?", fullID).First(&p).Error; err == nil {
+		username = p.Username
+	}
 	if username == "" {
 		username = "未知指挥官"
 	}

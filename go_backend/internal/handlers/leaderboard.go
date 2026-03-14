@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm/clause"
 )
 
 // LeaderboardEntry 排行榜条目
@@ -121,7 +122,11 @@ func UpdateUserProfile(c *gin.Context) {
 		Username: safeUsername,
 	}
 
-	if err := database.DB.Save(&profile).Error; err != nil {
+	// 使用 Clauses 处理 MySQL 的 Upsert，显式指定只更新用户名和时间戳，避免覆盖 CreatedAt
+	if err := database.DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "device_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"username", "updated_at"}),
+	}).Create(&profile).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
 		return
 	}
