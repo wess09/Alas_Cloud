@@ -58,7 +58,7 @@ func GetLeaderboard(c *gin.Context) {
 			"SUM(telemetry_data.akashi_encounters) as akashi_encounters, "+
 			"MAX(telemetry_data.updated_at) as last_active").
 		Joins("LEFT JOIN user_profiles ON user_profiles.device_id = telemetry_data.device_id").
-		Group("telemetry_data.device_id").
+		Group("telemetry_data.device_id, user_profiles.username").
 		Order(orderBy).
 		Limit(size).
 		Offset(offset).

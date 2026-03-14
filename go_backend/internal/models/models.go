@@ -59,7 +59,7 @@ func (Announcement) TableName() string {
 // SystemConfig 系统全局配置模型
 type SystemConfig struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	Key       string    `gorm:"uniqueIndex;not null;column:\"key\";size:191" json:"key"`
+	Key       string    `gorm:"uniqueIndex;not null;column:key;size:191" json:"key"`
 	Value     string    `gorm:"not null;column:value" json:"value"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime;column:updated_at" json:"updated_at"`
 }

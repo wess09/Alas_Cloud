@@ -372,9 +372,9 @@ func buildAzurstatQueries(c *gin.Context) (*gorm.DB, *gorm.DB, error) {
 func azurstatDateExpression(interval string) (string, error) {
 	switch interval {
 	case "day":
-		return "strftime('%Y-%m-%d', azurstat_reports.created_at)", nil
+		return "DATE_FORMAT(azurstat_reports.created_at, '%Y-%m-%d')", nil
 	case "month":
-		return "strftime('%Y-%m', azurstat_reports.created_at)", nil
+		return "DATE_FORMAT(azurstat_reports.created_at, '%Y-%m')", nil
 	default:
 		return "", errInvalidAzurstatFilter("invalid interval")
 	}
