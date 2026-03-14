@@ -137,6 +137,20 @@ func migrateFromSQLite() {
 	}
 
 	// 开始同步数据
+	shouldTruncate := os.Getenv("FORCE_MIGRATION_REDO") == "true"
+	if shouldTruncate {
+		log.Println("⚠️ FORCE_MIGRATION_REDO is true, truncating MySQL tables before migration...")
+		DB.Exec("SET FOREIGN_KEY_CHECKS = 0;")
+		DB.Exec("TRUNCATE TABLE stamina_kline")
+		DB.Exec("TRUNCATE TABLE stamina_snapshots")
+		DB.Exec("TRUNCATE TABLE telemetry_data")
+		DB.Exec("TRUNCATE TABLE azurstat_reports")
+		DB.Exec("TRUNCATE TABLE azurstat_item_drops")
+		DB.Exec("SET FOREIGN_KEY_CHECKS = 1;")
+		// 清除迁移标记
+		DB.Where("`key` = ?", "sqlite_migrated").Delete(&models.SystemConfig{})
+	}
+
 	copyTable[models.UserProfile](src, DB, "UserProfiles")
 	copyTable[models.AdminUser](src, DB, "AdminUsers")
 	copyTable[models.Announcement](src, DB, "Announcements")

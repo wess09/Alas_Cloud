@@ -175,7 +175,7 @@ func GetStaminaLatest(c *gin.Context) {
 
 	var topUsers []UserContribution
 	database.DB.Table("stamina_snapshots s").
-		Select("SUBSTR(s.device_id, 1, 8) as device_id, COALESCE(u.username, '未知指挥官') as username, s.stamina").
+		Select("SUBSTRING(s.device_id, 1, 8) as device_id, COALESCE(u.username, '未知指挥官') as username, s.stamina").
 		Joins("LEFT JOIN user_profiles u ON u.device_id = s.device_id").
 		Where("s.minute_key = ?", latest.MinuteKey).
 		Order("s.stamina DESC").
