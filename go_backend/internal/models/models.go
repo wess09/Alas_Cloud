@@ -6,7 +6,7 @@ import (
 
 // UserProfile 用户个人资料
 type UserProfile struct {
-	DeviceID  string    `gorm:"primaryKey;uniqueIndex;column:device_id" json:"device_id"`
+	DeviceID  string    `gorm:"primaryKey;uniqueIndex;column:device_id;size:191" json:"device_id"`
 	Username  string    `gorm:"column:username" json:"username"`
 	CreatedAt time.Time `gorm:"autoCreateTime;column:created_at" json:"created_at"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime;column:updated_at" json:"updated_at"`
@@ -20,10 +20,10 @@ func (UserProfile) TableName() string {
 // TelemetryData 遥测数据模型
 type TelemetryData struct {
 	ID                uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	DeviceID          string    `gorm:"uniqueIndex:uix_dev_inst_month;not null;column:device_id" json:"device_id"`
-	InstanceID        string    `gorm:"uniqueIndex:uix_dev_inst_month;not null;column:instance_id" json:"instance_id"`
-	IPAddress         string    `gorm:"index;column:ip_address" json:"ip_address"`
-	Month             string    `gorm:"uniqueIndex:uix_dev_inst_month;not null;column:month" json:"month"`
+	DeviceID          string    `gorm:"uniqueIndex:uix_dev_inst_month;not null;column:device_id;size:191" json:"device_id"`
+	InstanceID        string    `gorm:"uniqueIndex:uix_dev_inst_month;not null;column:instance_id;size:191" json:"instance_id"`
+	IPAddress         string    `gorm:"index;column:ip_address;size:191" json:"ip_address"`
+	Month             string    `gorm:"uniqueIndex:uix_dev_inst_month;not null;column:month;size:191" json:"month"`
 	BattleCount       int       `gorm:"not null;column:battle_count" json:"battle_count"`
 	BattleRounds      int       `gorm:"not null;column:battle_rounds" json:"battle_rounds"`
 	SortieCost        int       `gorm:"not null;column:sortie_cost" json:"sortie_cost"`
@@ -59,7 +59,7 @@ func (Announcement) TableName() string {
 // SystemConfig 系统全局配置模型
 type SystemConfig struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	Key       string    `gorm:"uniqueIndex;not null;column:key" json:"key"`
+	Key       string    `gorm:"uniqueIndex;not null;column:key;size:191" json:"key"`
 	Value     string    `gorm:"not null;column:value" json:"value"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime;column:updated_at" json:"updated_at"`
 }
@@ -72,7 +72,7 @@ func (SystemConfig) TableName() string {
 // AdminUser 管理员账户模型
 type AdminUser struct {
 	ID           uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	Username     string    `gorm:"uniqueIndex;not null" json:"username"`
+	Username     string    `gorm:"uniqueIndex;not null;size:191" json:"username"`
 	PasswordHash string    `gorm:"not null" json:"-"` // 不在 JSON 中返回
 	CreatedAt    time.Time `gorm:"autoCreateTime" json:"created_at"`
 }
@@ -85,8 +85,8 @@ func (AdminUser) TableName() string {
 // Report 举报模型
 type Report struct {
 	ID           uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	TargetID     string    `gorm:"index;not null;column:target_id" json:"target_id"`     // 被举报人 DeviceID
-	ReporterID   string    `gorm:"index;not null;column:reporter_id" json:"reporter_id"` // 举报人 DeviceID (或 IP)
+	TargetID     string    `gorm:"index;not null;column:target_id;size:191" json:"target_id"`     // 被举报人 DeviceID
+	ReporterID   string    `gorm:"index;not null;column:reporter_id;size:191" json:"reporter_id"` // 举报人 DeviceID (或 IP)
 	Reason       string    `gorm:"column:reason" json:"reason"`
 	CreatedAt    time.Time `gorm:"autoCreateTime;column:created_at" json:"created_at"`
 }
@@ -99,8 +99,8 @@ func (Report) TableName() string {
 // BannedUser 封禁用户模型
 type BannedUser struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	DeviceID  string    `gorm:"uniqueIndex;column:device_id" json:"device_id"` // 被封禁的 DeviceID
-	IPAddress string    `gorm:"index;column:ip_address" json:"ip_address"`     // 被封禁的 IP (最后一次已知 IP)
+	DeviceID  string    `gorm:"uniqueIndex;column:device_id;size:191" json:"device_id"` // 被封禁的 DeviceID
+	IPAddress string    `gorm:"index;column:ip_address;size:191" json:"ip_address"`     // 被封禁的 IP (最后一次已知 IP)
 	Username  string    `gorm:"column:username" json:"username"`               // 封禁时的用户名 (备份用)
 	Reason    string    `gorm:"column:reason" json:"reason"`
 	BannedAt  time.Time `gorm:"autoCreateTime;column:banned_at" json:"banned_at"`
@@ -155,9 +155,9 @@ type ChangePasswordRequest struct {
 // StaminaSnapshot 用户体力快照（每次上报原始数据）
 type StaminaSnapshot struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	DeviceID  string    `gorm:"index;not null;column:device_id" json:"device_id"`
+	DeviceID  string    `gorm:"index;not null;column:device_id;size:191" json:"device_id"`
 	Stamina   float64   `gorm:"not null;column:stamina" json:"stamina"`
-	MinuteKey string    `gorm:"index;not null;column:minute_key" json:"minute_key"` // 格式: 2006-01-02T15:04
+	MinuteKey string    `gorm:"index;not null;column:minute_key;size:191" json:"minute_key"` // 格式: 2006-01-02T15:04
 	CreatedAt time.Time `gorm:"autoCreateTime;column:created_at" json:"created_at"`
 }
 
@@ -169,8 +169,8 @@ func (StaminaSnapshot) TableName() string {
 // StaminaOHLCV 体力大盘 K 线聚合数据
 type StaminaOHLCV struct {
 	ID            uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	MinuteKey     string    `gorm:"uniqueIndex:uix_stamina_kline_key_period;not null;column:minute_key" json:"minute_key"` // 格式: 2006-01-02T15:04
-	Period        string    `gorm:"uniqueIndex:uix_stamina_kline_key_period;not null;column:period" json:"period"`         // 1m, 5m, 1h, 1d
+	MinuteKey     string    `gorm:"uniqueIndex:uix_stamina_kline_key_period;not null;column:minute_key;size:191" json:"minute_key"` // 格式: 2006-01-02T15:04
+	Period        string    `gorm:"uniqueIndex:uix_stamina_kline_key_period;not null;column:period;size:191" json:"period"`         // 1m, 5m, 1h, 1d
 	Open          float64   `gorm:"not null;column:open" json:"open"`
 	High          float64   `gorm:"not null;column:high" json:"high"`
 	Low           float64   `gorm:"not null;column:low" json:"low"`
@@ -208,11 +208,11 @@ type StaminaReportRequest struct {
 // 注意：前端独立部署，不影响后端数据模型设计。
 type AzurstatReport struct {
 	ID          uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	DeviceID    string    `gorm:"index:idx_azurstat_device_id;not null;column:device_id" json:"device_id"`
-	Task        string    `gorm:"index:idx_azurstat_task;not null;column:task" json:"task"`
+	DeviceID    string    `gorm:"index:idx_azurstat_device_id;not null;column:device_id;size:191" json:"device_id"`
+	Task        string    `gorm:"index:idx_azurstat_task;not null;column:task;size:191" json:"task"`
 	Zone        string    `gorm:"column:zone" json:"zone"`
 	ZoneType    string    `gorm:"column:zone_type" json:"zone_type"`
-	ZoneID      string    `gorm:"index:idx_azurstat_zone_id;column:zone_id" json:"zone_id"`
+	ZoneID      string    `gorm:"index:idx_azurstat_zone_id;column:zone_id;size:191" json:"zone_id"`
 	HazardLevel int       `gorm:"index:idx_azurstat_hazard_level;not null;column:hazard_level" json:"hazard_level"`
 	CombatCount int       `gorm:"not null;column:combat_count" json:"combat_count"`
 	CreatedAt   time.Time `gorm:"index:idx_azurstat_created_at;autoCreateTime;column:created_at" json:"created_at"`
@@ -227,7 +227,7 @@ func (AzurstatReport) TableName() string {
 type AzurstatItemDrop struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
 	ReportID  uint      `gorm:"index:idx_azurstat_item_report_id;not null;column:report_id" json:"report_id"`
-	Item      string    `gorm:"index:idx_azurstat_item_name;not null;column:item" json:"item"`
+	Item      string    `gorm:"index:idx_azurstat_item_name;not null;column:item;size:191" json:"item"`
 	Amount    int       `gorm:"not null;column:amount" json:"amount"`
 	IsMeow    bool      `gorm:"index:idx_azurstat_is_meow;not null;default:false;column:is_meow" json:"is_meow"`
 	CreatedAt time.Time `gorm:"autoCreateTime;column:created_at" json:"created_at"`
