@@ -52,7 +52,7 @@ func GetLeaderboard(c *gin.Context) {
 	// 我们需要按 device_id 分组统计
 	// fix: 隐藏 device_id，只返回前 8 位
 	err := database.DB.Table("telemetry_data").
-		Select("SUBSTR(telemetry_data.device_id, 1, 8) as device_id, "+
+		Select("SUBSTRING(telemetry_data.device_id, 1, 8) as device_id, "+
 			"COALESCE(user_profiles.username, '') as username, "+
 			"SUM(telemetry_data.battle_rounds) as battle_rounds, "+
 			"(SUM(telemetry_data.net_stamina_gain) - SUM(telemetry_data.battle_rounds * 5)) as net_stamina_gain, "+
