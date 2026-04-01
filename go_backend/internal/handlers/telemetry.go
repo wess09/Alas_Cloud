@@ -410,6 +410,10 @@ func GetGlobalTelemetryHistory(c *gin.Context) {
 
 	var monthlyAggrs []MonthlyAggr
 
+	// 获取总设备数
+	var totalDevices int64
+	database.DB.Model(&models.TelemetryData{}).Count(&totalDevices)
+
 	err := database.DB.Table("telemetry_data").
 		Select(`
 			month, 
@@ -460,8 +464,15 @@ func GetGlobalTelemetryHistory(c *gin.Context) {
 		avgStamina = totalStaminaSum / float64(totalAkashiEncounters)
 	}
 
+	totalSortieCost = totalBattleRounds * 5
+	cycleEfficiency := 0.0
+	if totalSortieCost > 0 {
+		cycleEfficiency = float64(totalNetStaminaGain) / float64(totalSortieCost)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"total": gin.H{
+			"total_devices":      totalDevices,
 			"battle_count":       totalBattleCount,
 			"battle_rounds":      totalBattleRounds,
 			"sortie_cost":        totalSortieCost,
@@ -469,6 +480,7 @@ func GetGlobalTelemetryHistory(c *gin.Context) {
 			"akashi_probability": avgAkashiProbability,
 			"average_stamina":    avgStamina,
 			"net_stamina_gain":   totalNetStaminaGain,
+			"cycle_efficiency":   cycleEfficiency,
 		},
 		"history": monthlyAggrs,
 	})
