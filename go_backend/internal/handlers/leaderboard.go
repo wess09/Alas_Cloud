@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm/clause"
@@ -45,21 +46,32 @@ func GetLeaderboard(c *gin.Context) {
 		orderBy = "net_stamina_gain DESC"
 	}
 
+	// 筛选月份，默认当前月
+	month := c.Query("month")
+	if month == "" {
+		month = time.Now().Format("2006-01")
+	}
+
 	var results []LeaderboardEntry
 
 	// 联合查询: 聚合 telemetry_data 并关联 user_profiles
 	// 注意: SQLite 的 Group By 行为
 	// 我们需要按 device_id 分组统计
 	// fix: 隐藏 device_id，只返回前 8 位
-	err := database.DB.Table("telemetry_data").
+	query := database.DB.Table("telemetry_data").
 		Select("SUBSTRING(telemetry_data.device_id, 1, 8) as device_id, "+
 			"COALESCE(user_profiles.username, '') as username, "+
 			"SUM(telemetry_data.battle_rounds) as battle_rounds, "+
 			"(SUM(telemetry_data.net_stamina_gain) - SUM(telemetry_data.battle_rounds * 5)) as net_stamina_gain, "+
 			"SUM(telemetry_data.akashi_encounters) as akashi_encounters, "+
 			"MAX(telemetry_data.updated_at) as last_active").
-		Joins("LEFT JOIN user_profiles ON user_profiles.device_id = telemetry_data.device_id").
-		Group("telemetry_data.device_id, user_profiles.username").
+		Joins("LEFT JOIN user_profiles ON user_profiles.device_id = telemetry_data.device_id")
+
+	if month != "all" {
+		query = query.Where("telemetry_data.month = ?", month)
+	}
+
+	err := query.Group("telemetry_data.device_id, user_profiles.username").
 		Order(orderBy).
 		Limit(size).
 		Offset(offset).
@@ -70,9 +82,13 @@ func GetLeaderboard(c *gin.Context) {
 		return
 	}
 
-	// 统计总数用于前端分页 (可选，为了性能可以考虑缓存或不查)
+	// 统计总数用于前端分页
 	var total int64
-	database.DB.Table("telemetry_data").Distinct("device_id").Count(&total)
+	countQuery := database.DB.Table("telemetry_data")
+	if month != "all" {
+		countQuery = countQuery.Where("month = ?", month)
+	}
+	countQuery.Distinct("device_id").Count(&total)
 
 	c.JSON(http.StatusOK, gin.H{
 		"data":  results,
