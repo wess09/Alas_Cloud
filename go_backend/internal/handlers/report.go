@@ -163,6 +163,7 @@ func banUser(targetID, reason string) error {
 		return nil
 	})
 	if err == nil {
+		invalidateTelemetryCache()
 		RequestStatsRefresh()
 	}
 	return err

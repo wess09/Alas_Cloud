@@ -68,6 +68,7 @@ func main() {
 	})
 
 	// Public API
+	handlers.InitTelemetryWriter()
 	handlers.InitStatsWorker() // 启动后台统计预计算协程
 	r.GET("/api/get/announcement", handlers.GetLatestAnnouncement)
 	r.GET("/api/updata", handlers.GetAutoUpdateStatus)
@@ -109,7 +110,7 @@ func main() {
 		admin.GET("/announcements", handlers.ListAnnouncements)
 		admin.DELETE("/announcement/:id", handlers.DeleteAnnouncement)
 		admin.PATCH("/announcement/:id/toggle", handlers.ToggleAnnouncement)
-		
+
 		// System Config
 		admin.GET("/config/auto_update", handlers.AdminGetAutoUpdateStatus)
 		admin.PATCH("/config/auto_update", handlers.AdminToggleAutoUpdate)
@@ -119,7 +120,7 @@ func main() {
 		admin.POST("/unban", handlers.UnbanUser)
 		admin.POST("/dismiss", handlers.DismissReport)
 	}
-	
+
 	r.POST("/api/report/undo", handlers.UndoReport)
 
 	// 静态文件 (前端)
@@ -151,6 +152,9 @@ func main() {
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown: ", err)
+	}
+	if err := handlers.ShutdownTelemetryWriter(ctx); err != nil {
+		log.Printf("Telemetry writer shutdown incomplete: %v", err)
 	}
 
 	log.Println("Server exiting")

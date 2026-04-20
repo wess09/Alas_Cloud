@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm/clause"
 )
 
 // ---- SSE 广播器 ----
@@ -110,6 +109,7 @@ func SubmitTelemetry(c *gin.Context) {
 	}
 
 	// 入库
+	now := time.Now()
 	data := models.TelemetryData{
 		DeviceID:          req.DeviceID,
 		InstanceID:        req.InstanceID,
@@ -122,35 +122,14 @@ func SubmitTelemetry(c *gin.Context) {
 		AkashiProbability: req.AkashiProbability,
 		AverageStamina:    req.AverageStamina,
 		NetStaminaGain:    req.NetStaminaGain,
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 
-	// 使用 OnConflict 显式指定更新列，避免触发 MySQL 0000-00-00 报错
-	if err := database.DB.Clauses(clause.OnConflict{
-		Columns: []clause.Column{
-			{Name: "device_id"},
-			{Name: "instance_id"},
-			{Name: "month"},
-		},
-		DoUpdates: clause.AssignmentColumns([]string{
-			"battle_count",
-			"battle_rounds",
-			"sortie_cost",
-			"akashi_encounters",
-			"akashi_probability",
-			"average_stamina",
-			"net_stamina_gain",
-			"ip_address",
-			"updated_at",
-		}),
-	}).Create(&data).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	RequestStatsRefresh()
+	EnqueueTelemetryWrite(data)
 
 	c.JSON(http.StatusOK, gin.H{
-		"status": "success", "message": "遥测数据已保存",
+		"status": "success", "message": "遥测数据已进入写入缓冲队列",
 		"device_id": req.DeviceID, "instance_id": req.InstanceID,
 	})
 }
@@ -310,186 +289,185 @@ func GetTelemetryHistory(c *gin.Context) {
 	// 解析完整的 Device ID
 	fullID := resolveFullDeviceID(deviceID)
 
-	type MonthlyAggr struct {
-		Month            string  `json:"month"`
-		BattleCount      int     `json:"battle_count"`
-		BattleRounds     int     `json:"battle_rounds"`
-		SortieCost       int     `json:"sortie_cost"`
-		AkashiEncounters int     `json:"akashi_encounters"`
-		NetStaminaGain   int     `json:"net_stamina_gain"`
-		TotalStaminaSum  float64 `json:"-"`
-		AverageStamina   float64 `json:"average_stamina"`
-		UpdatedAt        string  `json:"updated_at"`
-	}
-
-	var monthlyAggrs []MonthlyAggr
-
-	err := database.DB.Table("telemetry_data").
-		Select(`
-			month, 
-			SUM(battle_count) as battle_count,
-			SUM(battle_rounds) as battle_rounds,
-			SUM(sortie_cost) as sortie_cost,
-			SUM(akashi_encounters) as akashi_encounters,
-			(SUM(net_stamina_gain) - SUM(battle_rounds * 5)) as net_stamina_gain,
-			SUM(average_stamina * akashi_encounters) as total_stamina_sum,
-			MAX(updated_at) as updated_at
-		`).
-		Where("device_id = ?", fullID).
-		Group("month").
-		Order("month DESC").
-		Scan(&monthlyAggrs).Error
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch history"})
-		return
-	}
-
-	// 获取用户名（如果有）
-	var username string
-	var p models.UserProfile
-	if err := database.DB.Where("device_id = ?", fullID).First(&p).Error; err == nil {
-		username = p.Username
-	}
-	if username == "" {
-		username = "未知指挥官"
-	}
-
-	// 累计聚合
-	var totalBattleCount, totalBattleRounds, totalSortieCost int
-	var totalAkashiEncounters, totalNetStaminaGain int
-	var totalStaminaSum float64 // 用于计算加权平均
-
-	for i := range monthlyAggrs {
-		// 计算每月的平均体力
-		if monthlyAggrs[i].AkashiEncounters > 0 {
-			monthlyAggrs[i].AverageStamina = monthlyAggrs[i].TotalStaminaSum / float64(monthlyAggrs[i].AkashiEncounters)
-		} else {
-			monthlyAggrs[i].AverageStamina = 0
+	serveCachedJSON(c, telemetryCacheKey("telemetry_history:"+fullID, c), 20*time.Second, func() (any, error) {
+		type MonthlyAggr struct {
+			Month            string  `json:"month"`
+			BattleCount      int     `json:"battle_count"`
+			BattleRounds     int     `json:"battle_rounds"`
+			SortieCost       int     `json:"sortie_cost"`
+			AkashiEncounters int     `json:"akashi_encounters"`
+			NetStaminaGain   int     `json:"net_stamina_gain"`
+			TotalStaminaSum  float64 `json:"-"`
+			AverageStamina   float64 `json:"average_stamina"`
+			UpdatedAt        string  `json:"updated_at"`
 		}
 
-		totalBattleCount += monthlyAggrs[i].BattleCount
-		totalBattleRounds += monthlyAggrs[i].BattleRounds
-		totalSortieCost += monthlyAggrs[i].SortieCost
-		totalAkashiEncounters += monthlyAggrs[i].AkashiEncounters
-		totalNetStaminaGain += monthlyAggrs[i].NetStaminaGain
-		totalStaminaSum += monthlyAggrs[i].TotalStaminaSum
-	}
+		var monthlyAggrs []MonthlyAggr
 
-	avgAkashiProbability := 0.0
-	if totalBattleRounds > 0 {
-		avgAkashiProbability = float64(totalAkashiEncounters) / float64(totalBattleRounds)
-	}
+		err := database.DB.Table("telemetry_data").
+			Select(`
+				month, 
+				SUM(battle_count) as battle_count,
+				SUM(battle_rounds) as battle_rounds,
+				SUM(sortie_cost) as sortie_cost,
+				SUM(akashi_encounters) as akashi_encounters,
+				(SUM(net_stamina_gain) - SUM(battle_rounds * 5)) as net_stamina_gain,
+				SUM(average_stamina * akashi_encounters) as total_stamina_sum,
+				MAX(updated_at) as updated_at
+			`).
+			Where("device_id = ?", fullID).
+			Group("month").
+			Order("month DESC").
+			Scan(&monthlyAggrs).Error
 
-	avgStamina := 0.0
-	if totalAkashiEncounters > 0 {
-		avgStamina = totalStaminaSum / float64(totalAkashiEncounters)
-	}
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch history"})
+			return nil, err
+		}
 
-	c.JSON(http.StatusOK, gin.H{
-		"device_id": fullID,
-		"username":  username,
-		"total": gin.H{
-			"battle_count":       totalBattleCount,
-			"battle_rounds":      totalBattleRounds,
-			"sortie_cost":        totalSortieCost,
-			"akashi_encounters":  totalAkashiEncounters,
-			"akashi_probability": avgAkashiProbability,
-			"average_stamina":    avgStamina,
-			"net_stamina_gain":   totalNetStaminaGain,
-		},
-		"history": monthlyAggrs,
+		var username string
+		var p models.UserProfile
+		if err := database.DB.Where("device_id = ?", fullID).First(&p).Error; err == nil {
+			username = p.Username
+		}
+		if username == "" {
+			username = "未知指挥官"
+		}
+
+		var totalBattleCount, totalBattleRounds, totalSortieCost int
+		var totalAkashiEncounters, totalNetStaminaGain int
+		var totalStaminaSum float64
+
+		for i := range monthlyAggrs {
+			if monthlyAggrs[i].AkashiEncounters > 0 {
+				monthlyAggrs[i].AverageStamina = monthlyAggrs[i].TotalStaminaSum / float64(monthlyAggrs[i].AkashiEncounters)
+			} else {
+				monthlyAggrs[i].AverageStamina = 0
+			}
+
+			totalBattleCount += monthlyAggrs[i].BattleCount
+			totalBattleRounds += monthlyAggrs[i].BattleRounds
+			totalSortieCost += monthlyAggrs[i].SortieCost
+			totalAkashiEncounters += monthlyAggrs[i].AkashiEncounters
+			totalNetStaminaGain += monthlyAggrs[i].NetStaminaGain
+			totalStaminaSum += monthlyAggrs[i].TotalStaminaSum
+		}
+
+		avgAkashiProbability := 0.0
+		if totalBattleRounds > 0 {
+			avgAkashiProbability = float64(totalAkashiEncounters) / float64(totalBattleRounds)
+		}
+
+		avgStamina := 0.0
+		if totalAkashiEncounters > 0 {
+			avgStamina = totalStaminaSum / float64(totalAkashiEncounters)
+		}
+
+		return gin.H{
+			"device_id": fullID,
+			"username":  username,
+			"total": gin.H{
+				"battle_count":       totalBattleCount,
+				"battle_rounds":      totalBattleRounds,
+				"sortie_cost":        totalSortieCost,
+				"akashi_encounters":  totalAkashiEncounters,
+				"akashi_probability": avgAkashiProbability,
+				"average_stamina":    avgStamina,
+				"net_stamina_gain":   totalNetStaminaGain,
+			},
+			"history": monthlyAggrs,
+		}, nil
 	})
 }
 
 // GetGlobalTelemetryHistory 获取所有用户的历史遥测聚合数据
 func GetGlobalTelemetryHistory(c *gin.Context) {
-	// 获取所有用户的按月分组数据
-	type MonthlyAggr struct {
-		Month            string  `json:"month"`
-		BattleCount      int     `json:"battle_count"`
-		BattleRounds     int     `json:"battle_rounds"`
-		SortieCost       int     `json:"sortie_cost"`
-		AkashiEncounters int     `json:"akashi_encounters"`
-		NetStaminaGain   int     `json:"net_stamina_gain"`
-		TotalStaminaSum  float64 `json:"-"`
-		AverageStamina   float64 `json:"average_stamina"`
-	}
-
-	var monthlyAggrs []MonthlyAggr
-
-	// 获取总设备数
-	var totalDevices int64
-	database.DB.Model(&models.TelemetryData{}).Count(&totalDevices)
-
-	err := database.DB.Table("telemetry_data").
-		Select(`
-			month, 
-			SUM(battle_count) as battle_count,
-			SUM(battle_rounds) as battle_rounds,
-			SUM(sortie_cost) as sortie_cost,
-			SUM(akashi_encounters) as akashi_encounters,
-			(SUM(net_stamina_gain) - SUM(battle_rounds * 5)) as net_stamina_gain,
-			SUM(average_stamina * akashi_encounters) as total_stamina_sum
-		`).
-		Group("month").
-		Order("month DESC").
-		Scan(&monthlyAggrs).Error
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch global history"})
-		return
-	}
-
-	var totalBattleCount, totalBattleRounds, totalSortieCost int
-	var totalAkashiEncounters, totalNetStaminaGain int
-	var totalStaminaSum float64
-
-	for i := range monthlyAggrs {
-		// 计算每月的平均体力
-		if monthlyAggrs[i].AkashiEncounters > 0 {
-			monthlyAggrs[i].AverageStamina = monthlyAggrs[i].TotalStaminaSum / float64(monthlyAggrs[i].AkashiEncounters)
-		} else {
-			monthlyAggrs[i].AverageStamina = 0
+	serveCachedJSON(c, telemetryCacheKey("telemetry_global_history", c), 30*time.Second, func() (any, error) {
+		type MonthlyAggr struct {
+			Month            string  `json:"month"`
+			BattleCount      int     `json:"battle_count"`
+			BattleRounds     int     `json:"battle_rounds"`
+			SortieCost       int     `json:"sortie_cost"`
+			AkashiEncounters int     `json:"akashi_encounters"`
+			NetStaminaGain   int     `json:"net_stamina_gain"`
+			TotalStaminaSum  float64 `json:"-"`
+			AverageStamina   float64 `json:"average_stamina"`
 		}
 
-		// 累计总计数据
-		totalBattleCount += monthlyAggrs[i].BattleCount
-		totalBattleRounds += monthlyAggrs[i].BattleRounds
-		totalSortieCost += monthlyAggrs[i].SortieCost
-		totalAkashiEncounters += monthlyAggrs[i].AkashiEncounters
-		totalNetStaminaGain += monthlyAggrs[i].NetStaminaGain
-		totalStaminaSum += monthlyAggrs[i].TotalStaminaSum
-	}
+		var monthlyAggrs []MonthlyAggr
+		var totalDevices int64
+		if err := database.DB.Model(&models.TelemetryData{}).Count(&totalDevices).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count devices"})
+			return nil, err
+		}
 
-	avgAkashiProbability := 0.0
-	if totalBattleRounds > 0 {
-		avgAkashiProbability = float64(totalAkashiEncounters) / float64(totalBattleRounds)
-	}
+		err := database.DB.Table("telemetry_data").
+			Select(`
+				month, 
+				SUM(battle_count) as battle_count,
+				SUM(battle_rounds) as battle_rounds,
+				SUM(sortie_cost) as sortie_cost,
+				SUM(akashi_encounters) as akashi_encounters,
+				(SUM(net_stamina_gain) - SUM(battle_rounds * 5)) as net_stamina_gain,
+				SUM(average_stamina * akashi_encounters) as total_stamina_sum
+			`).
+			Group("month").
+			Order("month DESC").
+			Scan(&monthlyAggrs).Error
 
-	avgStamina := 0.0
-	if totalAkashiEncounters > 0 {
-		avgStamina = totalStaminaSum / float64(totalAkashiEncounters)
-	}
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch global history"})
+			return nil, err
+		}
 
-	totalSortieCost = totalBattleRounds * 5
-	cycleEfficiency := 0.0
-	if totalSortieCost > 0 {
-		cycleEfficiency = float64(totalNetStaminaGain) / float64(totalSortieCost)
-	}
+		var totalBattleCount, totalBattleRounds, totalSortieCost int
+		var totalAkashiEncounters, totalNetStaminaGain int
+		var totalStaminaSum float64
 
-	c.JSON(http.StatusOK, gin.H{
-		"total": gin.H{
-			"total_devices":      totalDevices,
-			"battle_count":       totalBattleCount,
-			"battle_rounds":      totalBattleRounds,
-			"sortie_cost":        totalSortieCost,
-			"akashi_encounters":  totalAkashiEncounters,
-			"akashi_probability": avgAkashiProbability,
-			"average_stamina":    avgStamina,
-			"net_stamina_gain":   totalNetStaminaGain,
-			"cycle_efficiency":   cycleEfficiency,
-		},
-		"history": monthlyAggrs,
+		for i := range monthlyAggrs {
+			if monthlyAggrs[i].AkashiEncounters > 0 {
+				monthlyAggrs[i].AverageStamina = monthlyAggrs[i].TotalStaminaSum / float64(monthlyAggrs[i].AkashiEncounters)
+			} else {
+				monthlyAggrs[i].AverageStamina = 0
+			}
+
+			totalBattleCount += monthlyAggrs[i].BattleCount
+			totalBattleRounds += monthlyAggrs[i].BattleRounds
+			totalSortieCost += monthlyAggrs[i].SortieCost
+			totalAkashiEncounters += monthlyAggrs[i].AkashiEncounters
+			totalNetStaminaGain += monthlyAggrs[i].NetStaminaGain
+			totalStaminaSum += monthlyAggrs[i].TotalStaminaSum
+		}
+
+		avgAkashiProbability := 0.0
+		if totalBattleRounds > 0 {
+			avgAkashiProbability = float64(totalAkashiEncounters) / float64(totalBattleRounds)
+		}
+
+		avgStamina := 0.0
+		if totalAkashiEncounters > 0 {
+			avgStamina = totalStaminaSum / float64(totalAkashiEncounters)
+		}
+
+		totalSortieCost = totalBattleRounds * 5
+		cycleEfficiency := 0.0
+		if totalSortieCost > 0 {
+			cycleEfficiency = float64(totalNetStaminaGain) / float64(totalSortieCost)
+		}
+
+		return gin.H{
+			"total": gin.H{
+				"total_devices":      totalDevices,
+				"battle_count":       totalBattleCount,
+				"battle_rounds":      totalBattleRounds,
+				"sortie_cost":        totalSortieCost,
+				"akashi_encounters":  totalAkashiEncounters,
+				"akashi_probability": avgAkashiProbability,
+				"average_stamina":    avgStamina,
+				"net_stamina_gain":   totalNetStaminaGain,
+				"cycle_efficiency":   cycleEfficiency,
+			},
+			"history": monthlyAggrs,
+		}, nil
 	})
 }

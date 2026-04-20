@@ -92,6 +92,8 @@ func SubmitAzurstat(c *gin.Context) {
 		return
 	}
 
+	invalidateAzurstatCache()
+
 	c.JSON(http.StatusOK, gin.H{
 		"status":       "success",
 		"message":      "AzurStat report saved",
@@ -110,42 +112,44 @@ func GetAzurstatStats(c *gin.Context) {
 		return
 	}
 
-	type statsResult struct {
-		TotalReports     int64 `json:"total_reports"`
-		TotalDevices     int64 `json:"total_devices"`
-		TotalCombatCount int64 `json:"total_combat_count"`
-	}
+	serveCachedJSON(c, azurstatCacheKey("azurstat_stats", c), 30*time.Second, func() (any, error) {
+		type statsResult struct {
+			TotalReports     int64 `json:"total_reports"`
+			TotalDevices     int64 `json:"total_devices"`
+			TotalCombatCount int64 `json:"total_combat_count"`
+		}
 
-	type itemResult struct {
-		TotalItemAmount int64 `json:"total_item_amount"`
-		TotalItemTypes  int64 `json:"total_item_types"`
-	}
+		type itemResult struct {
+			TotalItemAmount int64 `json:"total_item_amount"`
+			TotalItemTypes  int64 `json:"total_item_types"`
+		}
 
-	var stats statsResult
-	if err := reportQuery.Select(`
-		COUNT(azurstat_reports.id) as total_reports,
-		COUNT(DISTINCT azurstat_reports.device_id) as total_devices,
-		COALESCE(SUM(azurstat_reports.combat_count), 0) as total_combat_count
-	`).Scan(&stats).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch stats"})
-		return
-	}
+		var stats statsResult
+		if err := reportQuery.Select(`
+			COUNT(azurstat_reports.id) as total_reports,
+			COUNT(DISTINCT azurstat_reports.device_id) as total_devices,
+			COALESCE(SUM(azurstat_reports.combat_count), 0) as total_combat_count
+		`).Scan(&stats).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch stats"})
+			return nil, err
+		}
 
-	var itemStats itemResult
-	if err := itemQuery.Select(`
-		COALESCE(SUM(azurstat_item_drops.amount), 0) as total_item_amount,
-		COUNT(DISTINCT azurstat_item_drops.item) as total_item_types
-	`).Scan(&itemStats).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch item stats"})
-		return
-	}
+		var itemStats itemResult
+		if err := itemQuery.Select(`
+			COALESCE(SUM(azurstat_item_drops.amount), 0) as total_item_amount,
+			COUNT(DISTINCT azurstat_item_drops.item) as total_item_types
+		`).Scan(&itemStats).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch item stats"})
+			return nil, err
+		}
 
-	c.JSON(http.StatusOK, gin.H{
-		"total_reports":      stats.TotalReports,
-		"total_devices":      stats.TotalDevices,
-		"total_combat_count": stats.TotalCombatCount,
-		"total_item_amount":  itemStats.TotalItemAmount,
-		"total_item_types":   itemStats.TotalItemTypes,
+		return gin.H{
+			"total_reports":      stats.TotalReports,
+			"total_devices":      stats.TotalDevices,
+			"total_combat_count": stats.TotalCombatCount,
+			"total_item_amount":  itemStats.TotalItemAmount,
+			"total_item_types":   itemStats.TotalItemTypes,
+		}, nil
 	})
 }
 
@@ -153,14 +157,6 @@ func GetAzurstatItems(c *gin.Context) {
 	reportQuery, itemQuery, err := buildAzurstatQueries(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	var totalCombat struct {
-		TotalCombatCount int64
-	}
-	if err := reportQuery.Select("COALESCE(SUM(azurstat_reports.combat_count), 0) as total_combat_count").Scan(&totalCombat).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch combat totals"})
 		return
 	}
 
@@ -177,45 +173,55 @@ func GetAzurstatItems(c *gin.Context) {
 		limit = parsedLimit
 	}
 
-	type itemRow struct {
-		Item         string `json:"item"`
-		TotalAmount  int64  `json:"total_amount"`
-		DropReports  int64  `json:"drop_reports"`
-		MeowAmount   int64  `json:"meow_amount"`
-		NormalAmount int64  `json:"normal_amount"`
-	}
-
-	var rows []itemRow
-	if err := itemQuery.Select(`
-		azurstat_item_drops.item as item,
-		COALESCE(SUM(azurstat_item_drops.amount), 0) as total_amount,
-		COUNT(DISTINCT azurstat_item_drops.report_id) as drop_reports,
-		COALESCE(SUM(CASE WHEN azurstat_item_drops.is_meow THEN azurstat_item_drops.amount ELSE 0 END), 0) as meow_amount,
-		COALESCE(SUM(CASE WHEN azurstat_item_drops.is_meow THEN 0 ELSE azurstat_item_drops.amount END), 0) as normal_amount
-	`).Group("azurstat_item_drops.item").Order("total_amount DESC, azurstat_item_drops.item ASC").Limit(limit).Scan(&rows).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch items"})
-		return
-	}
-
-	response := make([]gin.H, 0, len(rows))
-	for _, row := range rows {
-		avgPerCombat := 0.0
-		if totalCombat.TotalCombatCount > 0 {
-			avgPerCombat = float64(row.TotalAmount) / float64(totalCombat.TotalCombatCount)
+	serveCachedJSON(c, azurstatCacheKey("azurstat_items", c), 30*time.Second, func() (any, error) {
+		var totalCombat struct {
+			TotalCombatCount int64
 		}
-		response = append(response, gin.H{
-			"item":           row.Item,
-			"total_amount":   row.TotalAmount,
-			"drop_reports":   row.DropReports,
-			"meow_amount":    row.MeowAmount,
-			"normal_amount":  row.NormalAmount,
-			"avg_per_combat": avgPerCombat,
-		})
-	}
+		if err := reportQuery.Select("COALESCE(SUM(azurstat_reports.combat_count), 0) as total_combat_count").Scan(&totalCombat).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch combat totals"})
+			return nil, err
+		}
 
-	c.JSON(http.StatusOK, gin.H{
-		"items": response,
-		"total": len(response),
+		type itemRow struct {
+			Item         string `json:"item"`
+			TotalAmount  int64  `json:"total_amount"`
+			DropReports  int64  `json:"drop_reports"`
+			MeowAmount   int64  `json:"meow_amount"`
+			NormalAmount int64  `json:"normal_amount"`
+		}
+
+		var rows []itemRow
+		if err := itemQuery.Select(`
+			azurstat_item_drops.item as item,
+			COALESCE(SUM(azurstat_item_drops.amount), 0) as total_amount,
+			COUNT(DISTINCT azurstat_item_drops.report_id) as drop_reports,
+			COALESCE(SUM(CASE WHEN azurstat_item_drops.is_meow THEN azurstat_item_drops.amount ELSE 0 END), 0) as meow_amount,
+			COALESCE(SUM(CASE WHEN azurstat_item_drops.is_meow THEN 0 ELSE azurstat_item_drops.amount END), 0) as normal_amount
+		`).Group("azurstat_item_drops.item").Order("total_amount DESC, azurstat_item_drops.item ASC").Limit(limit).Scan(&rows).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch items"})
+			return nil, err
+		}
+
+		response := make([]gin.H, 0, len(rows))
+		for _, row := range rows {
+			avgPerCombat := 0.0
+			if totalCombat.TotalCombatCount > 0 {
+				avgPerCombat = float64(row.TotalAmount) / float64(totalCombat.TotalCombatCount)
+			}
+			response = append(response, gin.H{
+				"item":           row.Item,
+				"total_amount":   row.TotalAmount,
+				"drop_reports":   row.DropReports,
+				"meow_amount":    row.MeowAmount,
+				"normal_amount":  row.NormalAmount,
+				"avg_per_combat": avgPerCombat,
+			})
+		}
+
+		return gin.H{
+			"items": response,
+			"total": len(response),
+		}, nil
 	})
 }
 
@@ -233,47 +239,49 @@ func GetAzurstatHistory(c *gin.Context) {
 		return
 	}
 
-	itemTotalsQuery := database.DB.Table("azurstat_item_drops").
-		Select("report_id, COALESCE(SUM(amount), 0) as item_amount").
-		Group("report_id")
+	serveCachedJSON(c, azurstatCacheKey("azurstat_history", c), 30*time.Second, func() (any, error) {
+		itemTotalsQuery := database.DB.Table("azurstat_item_drops").
+			Select("report_id, COALESCE(SUM(amount), 0) as item_amount").
+			Group("report_id")
 
-	if isMeowRaw := strings.TrimSpace(c.Query("is_meow")); isMeowRaw != "" {
-		isMeow, parseErr := strconv.ParseBool(isMeowRaw)
-		if parseErr != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid is_meow"})
-			return
+		if isMeowRaw := strings.TrimSpace(c.Query("is_meow")); isMeowRaw != "" {
+			isMeow, parseErr := strconv.ParseBool(isMeowRaw)
+			if parseErr != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid is_meow"})
+				return nil, parseErr
+			}
+			itemTotalsQuery = itemTotalsQuery.Where("is_meow = ?", isMeow)
 		}
-		itemTotalsQuery = itemTotalsQuery.Where("is_meow = ?", isMeow)
-	}
 
-	baseQuery := reportQuery.Joins("LEFT JOIN (?) as item_totals ON item_totals.report_id = azurstat_reports.id", itemTotalsQuery)
+		baseQuery := reportQuery.Joins("LEFT JOIN (?) as item_totals ON item_totals.report_id = azurstat_reports.id", itemTotalsQuery)
 
-	type historyRow struct {
-		Date        string `json:"date"`
-		ReportCount int64  `json:"report_count"`
-		CombatCount int64  `json:"combat_count"`
-		ItemAmount  int64  `json:"item_amount"`
-		DeviceCount int64  `json:"device_count"`
-	}
+		type historyRow struct {
+			Date        string `json:"date"`
+			ReportCount int64  `json:"report_count"`
+			CombatCount int64  `json:"combat_count"`
+			ItemAmount  int64  `json:"item_amount"`
+			DeviceCount int64  `json:"device_count"`
+		}
 
-	var rows []historyRow
-	selectClause := fmt.Sprintf(`%s as date,
-		COUNT(azurstat_reports.id) as report_count,
-		COALESCE(SUM(azurstat_reports.combat_count), 0) as combat_count,
-		COALESCE(SUM(COALESCE(item_totals.item_amount, 0)), 0) as item_amount,
-		COUNT(DISTINCT azurstat_reports.device_id) as device_count`, dateExpr)
+		var rows []historyRow
+		selectClause := fmt.Sprintf(`%s as date,
+			COUNT(azurstat_reports.id) as report_count,
+			COALESCE(SUM(azurstat_reports.combat_count), 0) as combat_count,
+			COALESCE(SUM(COALESCE(item_totals.item_amount, 0)), 0) as item_amount,
+			COUNT(DISTINCT azurstat_reports.device_id) as device_count`, dateExpr)
 
-	if err := baseQuery.Select(selectClause).
-		Group("date").
-		Order("date DESC").
-		Scan(&rows).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch history"})
-		return
-	}
+		if err := baseQuery.Select(selectClause).
+			Group("date").
+			Order("date DESC").
+			Scan(&rows).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch history"})
+			return nil, err
+		}
 
-	c.JSON(http.StatusOK, gin.H{
-		"interval": interval,
-		"history":  rows,
+		return gin.H{
+			"interval": interval,
+			"history":  rows,
+		}, nil
 	})
 }
 

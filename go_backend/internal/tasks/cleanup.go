@@ -29,6 +29,7 @@ func cleanup() {
 		log.Printf("⚠️ cleanup failed: %v", result.Error)
 	} else if result.RowsAffected > 0 {
 		log.Printf("🧹 cleaned up %d inactive instances", result.RowsAffected)
+		handlers.InvalidateTelemetryCache()
 		handlers.RequestStatsRefresh()
 	}
 }

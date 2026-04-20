@@ -15,12 +15,12 @@ import (
 
 // LeaderboardEntry 排行榜条目
 type LeaderboardEntry struct {
-	DeviceID         string  `json:"device_id"`
-	Username         string  `json:"username"`
-	BattleRounds     int     `json:"battle_rounds"`
-	NetStaminaGain   int     `json:"net_stamina_gain"`
-	AkashiEncounters int     `json:"akashi_encounters"`
-	LastActive       string  `json:"last_active"` // 最近一次上传数据的时间
+	DeviceID         string `json:"device_id"`
+	Username         string `json:"username"`
+	BattleRounds     int    `json:"battle_rounds"`
+	NetStaminaGain   int    `json:"net_stamina_gain"`
+	AkashiEncounters int    `json:"akashi_encounters"`
+	LastActive       string `json:"last_active"` // 最近一次上传数据的时间
 }
 
 // GetLeaderboard 获取排行榜数据 (支持分页)
@@ -40,7 +40,7 @@ func GetLeaderboard(c *gin.Context) {
 	offset := (page - 1) * size
 
 	// 排序逻辑
-	orderBy := "battle_rounds DESC" // 默认
+	orderBy := "battle_rounds DESC"              // 默认
 	sortType := c.DefaultQuery("sort", "rounds") // 默认改为 rounds
 	if sortType == "stamina" {
 		orderBy = "net_stamina_gain DESC"
@@ -52,49 +52,53 @@ func GetLeaderboard(c *gin.Context) {
 		month = time.Now().Format("2006-01")
 	}
 
-	var results []LeaderboardEntry
+	serveCachedJSON(c, telemetryCacheKey("leaderboard", c), 15*time.Second, func() (any, error) {
+		var results []LeaderboardEntry
 
-	// 联合查询: 聚合 telemetry_data 并关联 user_profiles
-	// 注意: SQLite 的 Group By 行为
-	// 我们需要按 device_id 分组统计
-	// fix: 隐藏 device_id，只返回前 8 位
-	query := database.DB.Table("telemetry_data").
-		Select("SUBSTRING(telemetry_data.device_id, 1, 8) as device_id, "+
-			"COALESCE(user_profiles.username, '') as username, "+
-			"SUM(telemetry_data.battle_rounds) as battle_rounds, "+
-			"(SUM(telemetry_data.net_stamina_gain) - SUM(telemetry_data.battle_rounds * 5)) as net_stamina_gain, "+
-			"SUM(telemetry_data.akashi_encounters) as akashi_encounters, "+
-			"MAX(telemetry_data.updated_at) as last_active").
-		Joins("LEFT JOIN user_profiles ON user_profiles.device_id = telemetry_data.device_id")
+		// 联合查询: 聚合 telemetry_data 并关联 user_profiles
+		// 注意: SQLite 的 Group By 行为
+		// 我们需要按 device_id 分组统计
+		// fix: 隐藏 device_id，只返回前 8 位
+		query := database.DB.Table("telemetry_data").
+			Select("SUBSTRING(telemetry_data.device_id, 1, 8) as device_id, " +
+				"COALESCE(user_profiles.username, '') as username, " +
+				"SUM(telemetry_data.battle_rounds) as battle_rounds, " +
+				"(SUM(telemetry_data.net_stamina_gain) - SUM(telemetry_data.battle_rounds * 5)) as net_stamina_gain, " +
+				"SUM(telemetry_data.akashi_encounters) as akashi_encounters, " +
+				"MAX(telemetry_data.updated_at) as last_active").
+			Joins("LEFT JOIN user_profiles ON user_profiles.device_id = telemetry_data.device_id")
 
-	if month != "all" {
-		query = query.Where("telemetry_data.month = ?", month)
-	}
+		if month != "all" {
+			query = query.Where("telemetry_data.month = ?", month)
+		}
 
-	err := query.Group("telemetry_data.device_id, user_profiles.username").
-		Order(orderBy).
-		Limit(size).
-		Offset(offset).
-		Scan(&results).Error
+		err := query.Group("telemetry_data.device_id, user_profiles.username").
+			Order(orderBy).
+			Limit(size).
+			Offset(offset).
+			Scan(&results).Error
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch leaderboard"})
+			return nil, err
+		}
 
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch leaderboard"})
-		return
-	}
+		// 统计总数用于前端分页
+		var total int64
+		countQuery := database.DB.Table("telemetry_data")
+		if month != "all" {
+			countQuery = countQuery.Where("month = ?", month)
+		}
+		if err := countQuery.Distinct("device_id").Count(&total).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to count leaderboard"})
+			return nil, err
+		}
 
-	// 统计总数用于前端分页
-	var total int64
-	countQuery := database.DB.Table("telemetry_data")
-	if month != "all" {
-		countQuery = countQuery.Where("month = ?", month)
-	}
-	countQuery.Distinct("device_id").Count(&total)
-
-	c.JSON(http.StatusOK, gin.H{
-		"data":  results,
-		"page":  page,
-		"size":  size,
-		"total": total,
+		return gin.H{
+			"data":  results,
+			"page":  page,
+			"size":  size,
+			"total": total,
+		}, nil
 	})
 }
 
@@ -146,6 +150,8 @@ func UpdateUserProfile(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
 		return
 	}
+
+	invalidateTelemetryCache()
 
 	c.JSON(http.StatusOK, gin.H{"status": "success", "username": req.Username})
 }
