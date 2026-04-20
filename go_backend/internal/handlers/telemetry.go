@@ -72,7 +72,7 @@ func SubmitTelemetry(c *gin.Context) {
 	database.DB.Model(&models.BannedUser{}).
 		Where("device_id = ? OR ip_address = ?", req.DeviceID, ip).
 		Count(&banCount)
-	
+
 	if banCount > 0 {
 		c.JSON(http.StatusForbidden, gin.H{"error": "User is banned from the leaderboard."})
 		return
@@ -147,6 +147,8 @@ func SubmitTelemetry(c *gin.Context) {
 		return
 	}
 
+	RequestStatsRefresh()
+
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success", "message": "遥测数据已保存",
 		"device_id": req.DeviceID, "instance_id": req.InstanceID,
@@ -157,17 +159,15 @@ var (
 	cachedStats     gin.H
 	cachedStatsJSON string
 	statsMutex      sync.RWMutex
+	statsRefreshCh  = make(chan struct{}, 1)
 )
 
 // InitStatsWorker 启动后台统计预计算协程，必须在 main 中调用一次
 func InitStatsWorker() {
 	// 启动时立即计算一次
 	refreshStats()
-	// 后台每 5 秒刷新一次
 	go func() {
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
-		for range ticker.C {
+		for range statsRefreshCh {
 			oldJSON := getStatsJSON()
 			refreshStats()
 			newJSON := getStatsJSON()
@@ -177,6 +177,14 @@ func InitStatsWorker() {
 			}
 		}
 	}()
+}
+
+// RequestStatsRefresh 请求异步刷新统计，buffer 满时合并多次刷新请求。
+func RequestStatsRefresh() {
+	select {
+	case statsRefreshCh <- struct{}{}:
+	default:
+	}
 }
 
 func refreshStats() {

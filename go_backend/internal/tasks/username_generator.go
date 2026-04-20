@@ -28,11 +28,11 @@ func StartUsernameGeneratorTask() {
 }
 
 type ipApiResponse struct {
-	Status      string  `json:"status"`
-	Country     string  `json:"country"`
-	RegionName  string  `json:"regionName"`
-	City        string  `json:"city"`
-	Message     string  `json:"message"`
+	Status     string `json:"status"`
+	Country    string `json:"country"`
+	RegionName string `json:"regionName"`
+	City       string `json:"city"`
+	Message    string `json:"message"`
 }
 
 func processNextUser() {
@@ -41,16 +41,20 @@ func processNextUser() {
 		IPAddress string
 	}
 
-	// 查找没有 Profile 的 DeviceID，并获取其最新的 IP
-	// 使用子查询排除已存在的 Profile
-	// 注意：这里需要去重，取最新的 IP
+	// PostgreSQL 上用 DISTINCT ON 取每个设备的最新记录，避免 GROUP BY + MAX 全表聚合排序。
 	err := database.DB.Raw(`
-		SELECT t.device_id, ANY_VALUE(t.ip_address) as ip_address
-		FROM telemetry_data t
-		LEFT JOIN user_profiles u ON t.device_id = u.device_id
-		WHERE u.device_id IS NULL
-		GROUP BY t.device_id
-		ORDER BY MAX(t.created_at) DESC
+		SELECT latest.device_id, latest.ip_address
+		FROM (
+			SELECT DISTINCT ON (t.device_id)
+				t.device_id,
+				t.ip_address,
+				t.created_at
+			FROM telemetry_data t
+			LEFT JOIN user_profiles u ON t.device_id = u.device_id
+			WHERE u.device_id IS NULL
+			ORDER BY t.device_id, t.created_at DESC, t.id DESC
+		) AS latest
+		ORDER BY latest.created_at DESC
 		LIMIT 1
 	`).Scan(&results).Error
 

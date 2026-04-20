@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"alas-cloud/internal/database"
+	"alas-cloud/internal/handlers"
 	"alas-cloud/internal/models"
 	"log"
 	"time"
@@ -28,5 +29,6 @@ func cleanup() {
 		log.Printf("⚠️ cleanup failed: %v", result.Error)
 	} else if result.RowsAffected > 0 {
 		log.Printf("🧹 cleaned up %d inactive instances", result.RowsAffected)
+		handlers.RequestStatsRefresh()
 	}
 }

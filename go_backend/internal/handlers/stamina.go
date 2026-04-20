@@ -92,8 +92,8 @@ func ReportStamina(c *gin.Context) {
 // ---- GetStaminaKline 查询 K 线数据 ----
 
 func GetStaminaKline(c *gin.Context) {
-	period := c.DefaultQuery("period", "1m")    // 1m, 5m, 1h, 1d
-	rangeStr := c.DefaultQuery("range", "day")   // day, week, month
+	period := c.DefaultQuery("period", "1m")   // 1m, 5m, 1h, 1d
+	rangeStr := c.DefaultQuery("range", "day") // day, week, month
 
 	// 计算时间范围
 	var since time.Time
@@ -274,49 +274,41 @@ func sendDashboardEvent(c *gin.Context) {
 
 // AggregateMinute 执行一次分钟级聚合
 func AggregateMinute(minuteKey string) {
-	// 1. 获取所有曾经上报过的用户
-	var allDeviceIDs []string
-	database.DB.Model(&models.StaminaSnapshot{}).
-		Distinct("device_id").
-		Pluck("device_id", &allDeviceIDs)
+	type aggregateResult struct {
+		TotalStamina  float64 `gorm:"column:total_stamina"`
+		ReportedCount int     `gorm:"column:reported_count"`
+		FilledCount   int     `gorm:"column:filled_count"`
+	}
 
-	if len(allDeviceIDs) == 0 {
+	var aggregate aggregateResult
+	err := database.DB.Raw(`
+		WITH latest_per_device AS (
+			SELECT DISTINCT ON (device_id)
+				device_id,
+				stamina,
+				minute_key
+			FROM stamina_snapshots
+			WHERE minute_key <= ?
+			ORDER BY device_id, minute_key DESC, created_at DESC, id DESC
+		)
+		SELECT
+			COALESCE(SUM(stamina), 0) AS total_stamina,
+			COUNT(*) FILTER (WHERE minute_key = ?) AS reported_count,
+			COUNT(*) FILTER (WHERE minute_key < ?) AS filled_count
+		FROM latest_per_device
+	`, minuteKey, minuteKey, minuteKey).Scan(&aggregate).Error
+	if err != nil {
+		log.Printf("[STAMINA] aggregate minute query failed for %s: %v", minuteKey, err)
 		return
 	}
 
-	// 2. 对每个用户获取当前分钟或最近的体力值
-	totalStamina := 0.0
-	reportedCount := 0
-	filledCount := 0
-
-	for _, deviceID := range allDeviceIDs {
-		var snapshot models.StaminaSnapshot
-
-		// 先查当前分钟是否有上报
-		err := database.DB.
-			Where("device_id = ? AND minute_key = ?", deviceID, minuteKey).
-			Order("created_at DESC").
-			First(&snapshot).Error
-
-		if err == nil {
-			// 有上报数据
-			totalStamina += snapshot.Stamina
-			reportedCount++
-			continue
-		}
-
-		// 没有 → 向前填充 (Last Known Value)
-		err = database.DB.
-			Where("device_id = ? AND minute_key < ?", deviceID, minuteKey).
-			Order("minute_key DESC, created_at DESC").
-			First(&snapshot).Error
-
-		if err == nil {
-			totalStamina += snapshot.Stamina
-			filledCount++
-		}
-		// 从未上报过的用户贡献 0，不参与求和
+	if aggregate.ReportedCount == 0 && aggregate.FilledCount == 0 {
+		return
 	}
+
+	totalStamina := aggregate.TotalStamina
+	reportedCount := aggregate.ReportedCount
+	filledCount := aggregate.FilledCount
 
 	// 3. 获取前一分钟的 Close 值作为本分钟的 Open（形成连续K线）
 	var prevOHLCV models.StaminaOHLCV
@@ -341,7 +333,7 @@ func AggregateMinute(minuteKey string) {
 
 	// 4. 查看该分钟是否已有 OHLCV 记录
 	var existing models.StaminaOHLCV
-	err := database.DB.Where("minute_key = ? AND period = ?", minuteKey, "1m").First(&existing).Error
+	err = database.DB.Where("minute_key = ? AND period = ?", minuteKey, "1m").First(&existing).Error
 
 	if err != nil {
 		// 新建

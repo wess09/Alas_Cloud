@@ -114,7 +114,7 @@ func banUser(targetID, reason string) error {
 	fullID := resolveFullDeviceID(targetID)
 	log.Printf("[BAN] Banning user: input=%s, resolved=%s", targetID, fullID)
 
-	return database.DB.Transaction(func(tx *gorm.DB) error {
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
 		// 1. 获取用户信息 (为了获取 IP 和 Username)
 		var telem models.TelemetryData
 		var profile models.UserProfile
@@ -162,6 +162,10 @@ func banUser(targetID, reason string) error {
 
 		return nil
 	})
+	if err == nil {
+		RequestStatsRefresh()
+	}
+	return err
 }
 
 // GetReportedUsersResponse 响应结构
@@ -182,13 +186,13 @@ func GetReportedUsers(c *gin.Context) {
 	// 使用子查询避免 JOIN 笛卡尔积导致数据膨胀，与排行榜逻辑一致
 	err := database.DB.Table("reports").
 		Select(
-			"reports.target_id, "+
-			"count(reports.id) as report_count, "+
-			"MAX(reports.reason) as latest_reason, "+
-			"COALESCE((SELECT username FROM user_profiles WHERE device_id = reports.target_id), 'Unknown') as username, "+
-			"COALESCE((SELECT SUM(battle_rounds) FROM telemetry_data WHERE device_id = reports.target_id), 0) as battle_rounds, "+
-			"COALESCE((SELECT SUM(net_stamina_gain) - SUM(battle_rounds * 5) FROM telemetry_data WHERE device_id = reports.target_id), 0) as net_stamina_gain, "+
-			"COALESCE((SELECT SUM(akashi_encounters) FROM telemetry_data WHERE device_id = reports.target_id), 0) as akashi_encounters",
+			"reports.target_id, " +
+				"count(reports.id) as report_count, " +
+				"MAX(reports.reason) as latest_reason, " +
+				"COALESCE((SELECT username FROM user_profiles WHERE device_id = reports.target_id), 'Unknown') as username, " +
+				"COALESCE((SELECT SUM(battle_rounds) FROM telemetry_data WHERE device_id = reports.target_id), 0) as battle_rounds, " +
+				"COALESCE((SELECT SUM(net_stamina_gain) - SUM(battle_rounds * 5) FROM telemetry_data WHERE device_id = reports.target_id), 0) as net_stamina_gain, " +
+				"COALESCE((SELECT SUM(akashi_encounters) FROM telemetry_data WHERE device_id = reports.target_id), 0) as akashi_encounters",
 		).
 		Group("reports.target_id").
 		Scan(&results).Error
@@ -314,7 +318,7 @@ func UndoReport(c *gin.Context) {
 
 	// Delete only reports by this reporter
 	result := database.DB.Exec("DELETE FROM reports WHERE target_id = ? AND reporter_id = ?", fullID, reporterID)
-	
+
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to undo report"})
 		return
