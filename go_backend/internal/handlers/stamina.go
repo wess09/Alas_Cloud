@@ -3,14 +3,19 @@ package handlers
 import (
 	"alas-cloud/internal/database"
 	"alas-cloud/internal/models"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // ---- 大盘 SSE 广播器 ----
@@ -66,23 +71,17 @@ func ReportStamina(c *gin.Context) {
 	now := time.Now()
 	minuteKey := now.Format("2006-01-02T15:04")
 
-	snapshot := models.StaminaSnapshot{
+	snapshot := staminaReport{
 		DeviceID:  req.DeviceID,
 		Stamina:   req.Stamina,
 		MinuteKey: minuteKey,
 	}
 
-	if err := database.DB.Create(&snapshot).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存失败"})
-		return
-	}
-
-	// 通知 SSE 客户端
-	dashboardBroadcaster.NotifyUpdate()
+	EnqueueStaminaWrite(snapshot)
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":     "success",
-		"message":    "体力数据已上报",
+		"message":    "体力数据已进入写入缓冲队列",
 		"device_id":  req.DeviceID,
 		"stamina":    req.Stamina,
 		"minute_key": minuteKey,
@@ -282,20 +281,12 @@ func AggregateMinute(minuteKey string) {
 
 	var aggregate aggregateResult
 	err := database.DB.Raw(`
-		WITH latest_per_device AS (
-			SELECT DISTINCT ON (device_id)
-				device_id,
-				stamina,
-				minute_key
-			FROM stamina_snapshots
-			WHERE minute_key <= ?
-			ORDER BY device_id, minute_key DESC, created_at DESC, id DESC
-		)
 		SELECT
 			COALESCE(SUM(stamina), 0) AS total_stamina,
 			COUNT(*) FILTER (WHERE minute_key = ?) AS reported_count,
 			COUNT(*) FILTER (WHERE minute_key < ?) AS filled_count
-		FROM latest_per_device
+		FROM stamina_current
+		WHERE minute_key <= ?
 	`, minuteKey, minuteKey, minuteKey).Scan(&aggregate).Error
 	if err != nil {
 		log.Printf("[STAMINA] aggregate minute query failed for %s: %v", minuteKey, err)
@@ -331,41 +322,230 @@ func AggregateMinute(minuteKey string) {
 		lowVal = openVal
 	}
 
-	// 4. 查看该分钟是否已有 OHLCV 记录
-	var existing models.StaminaOHLCV
-	err = database.DB.Where("minute_key = ? AND period = ?", minuteKey, "1m").First(&existing).Error
-
-	if err != nil {
-		// 新建
-		ohlcv := models.StaminaOHLCV{
-			MinuteKey:     minuteKey,
-			Period:        "1m",
-			Open:          openVal,
-			High:          highVal,
-			Low:           lowVal,
-			Close:         totalStamina,
-			Volume:        totalStamina,
-			ReportedCount: reportedCount,
-			FilledCount:   filledCount,
-		}
-		database.DB.Create(&ohlcv)
-	} else {
-		// 更新（保持 Open 不变，更新 High/Low/Close）
-		if totalStamina > existing.High {
-			existing.High = totalStamina
-		}
-		if totalStamina < existing.Low {
-			existing.Low = totalStamina
-		}
-		existing.Close = totalStamina
-		existing.Volume = totalStamina
-		existing.ReportedCount = reportedCount
-		existing.FilledCount = filledCount
-		database.DB.Save(&existing)
+	ohlcv := models.StaminaOHLCV{
+		MinuteKey:     minuteKey,
+		Period:        "1m",
+		Open:          openVal,
+		High:          highVal,
+		Low:           lowVal,
+		Close:         totalStamina,
+		Volume:        totalStamina,
+		ReportedCount: reportedCount,
+		FilledCount:   filledCount,
 	}
+	database.DB.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "minute_key"}, {Name: "period"}},
+		DoUpdates: clause.Assignments(map[string]any{
+			"high":           gormExpr("GREATEST(stamina_kline.high, EXCLUDED.high)"),
+			"low":            gormExpr("LEAST(stamina_kline.low, EXCLUDED.low)"),
+			"close":          ohlcv.Close,
+			"volume":         ohlcv.Volume,
+			"reported_count": ohlcv.ReportedCount,
+			"filled_count":   ohlcv.FilledCount,
+		}),
+	}).Create(&ohlcv)
 
 	log.Printf("[STAMINA] Aggregated minute=%s open=%.0f close=%.0f reported=%d filled=%d",
 		minuteKey, openVal, totalStamina, reportedCount, filledCount)
+}
+
+type staminaReport struct {
+	DeviceID  string
+	Stamina   float64
+	MinuteKey string
+}
+
+type staminaBuffer struct {
+	mu            sync.Mutex
+	pending       map[string]staminaReport
+	flushInterval time.Duration
+	flushSize     int
+	flushSignal   chan struct{}
+	stopCh        chan struct{}
+	doneCh        chan struct{}
+}
+
+var staminaWriter *staminaBuffer
+
+func InitStaminaWriter() {
+	if staminaWriter != nil {
+		return
+	}
+
+	staminaWriter = &staminaBuffer{
+		pending:       make(map[string]staminaReport),
+		flushInterval: loadStaminaFlushInterval(),
+		flushSize:     loadStaminaFlushSize(),
+		flushSignal:   make(chan struct{}, 1),
+		stopCh:        make(chan struct{}),
+		doneCh:        make(chan struct{}),
+	}
+
+	go staminaWriter.run()
+	log.Printf("[STAMINA] buffered writer started interval=%s flush_size=%d", staminaWriter.flushInterval, staminaWriter.flushSize)
+}
+
+func ShutdownStaminaWriter(ctx context.Context) error {
+	if staminaWriter == nil {
+		return nil
+	}
+
+	close(staminaWriter.stopCh)
+	select {
+	case <-staminaWriter.doneCh:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func EnqueueStaminaWrite(report staminaReport) {
+	if staminaWriter == nil {
+		writeStaminaBatch([]staminaReport{report})
+		return
+	}
+	staminaWriter.enqueue(report)
+}
+
+func (b *staminaBuffer) run() {
+	ticker := time.NewTicker(b.flushInterval)
+	defer ticker.Stop()
+	defer close(b.doneCh)
+
+	for {
+		select {
+		case <-ticker.C:
+			b.flush()
+		case <-b.flushSignal:
+			b.flush()
+		case <-b.stopCh:
+			b.flush()
+			return
+		}
+	}
+}
+
+func (b *staminaBuffer) enqueue(report staminaReport) {
+	b.mu.Lock()
+	b.pending[staminaBufferKey(report)] = report
+	shouldFlush := len(b.pending) >= b.flushSize
+	b.mu.Unlock()
+
+	if shouldFlush {
+		select {
+		case b.flushSignal <- struct{}{}:
+		default:
+		}
+	}
+}
+
+func (b *staminaBuffer) flush() {
+	batch := b.drain()
+	if len(batch) == 0 {
+		return
+	}
+	if err := writeStaminaBatch(batch); err != nil {
+		log.Printf("[STAMINA] buffered flush failed, requeueing %d rows: %v", len(batch), err)
+		b.requeue(batch)
+		return
+	}
+	log.Printf("[STAMINA] flushed %d buffered rows", len(batch))
+}
+
+func (b *staminaBuffer) drain() []staminaReport {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if len(b.pending) == 0 {
+		return nil
+	}
+	batch := make([]staminaReport, 0, len(b.pending))
+	for _, item := range b.pending {
+		batch = append(batch, item)
+	}
+	b.pending = make(map[string]staminaReport)
+	return batch
+}
+
+func (b *staminaBuffer) requeue(batch []staminaReport) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	for _, item := range batch {
+		b.pending[staminaBufferKey(item)] = item
+	}
+}
+
+func writeStaminaBatch(batch []staminaReport) error {
+	snapshots := make([]models.StaminaSnapshot, 0, len(batch))
+	currents := make([]models.StaminaCurrent, 0, len(batch))
+	now := time.Now()
+	for _, item := range batch {
+		snapshots = append(snapshots, models.StaminaSnapshot{
+			DeviceID:  item.DeviceID,
+			Stamina:   item.Stamina,
+			MinuteKey: item.MinuteKey,
+			CreatedAt: now,
+		})
+		currents = append(currents, models.StaminaCurrent{
+			DeviceID:  item.DeviceID,
+			Stamina:   item.Stamina,
+			MinuteKey: item.MinuteKey,
+			UpdatedAt: now,
+		})
+	}
+
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.CreateInBatches(snapshots, 500).Error; err != nil {
+			return err
+		}
+
+		return tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "device_id"}},
+			DoUpdates: clause.AssignmentColumns([]string{
+				"stamina",
+				"minute_key",
+				"updated_at",
+			}),
+		}).CreateInBatches(currents, 500).Error
+	})
+	if err != nil {
+		return err
+	}
+
+	dashboardBroadcaster.NotifyUpdate()
+	return nil
+}
+
+func staminaBufferKey(report staminaReport) string {
+	return report.DeviceID + "|" + report.MinuteKey
+}
+
+func loadStaminaFlushInterval() time.Duration {
+	raw := os.Getenv("STAMINA_FLUSH_INTERVAL_SECONDS")
+	if raw == "" {
+		return 5 * time.Second
+	}
+	seconds, err := strconv.Atoi(raw)
+	if err != nil || seconds <= 0 {
+		return 5 * time.Second
+	}
+	return time.Duration(seconds) * time.Second
+}
+
+func loadStaminaFlushSize() int {
+	raw := os.Getenv("STAMINA_FLUSH_BATCH_SIZE")
+	if raw == "" {
+		return 500
+	}
+	size, err := strconv.Atoi(raw)
+	if err != nil || size <= 0 {
+		return 500
+	}
+	return size
+}
+
+func gormExpr(sql string) clause.Expr {
+	return clause.Expr{SQL: sql}
 }
 
 // AggregateHigherPeriods 聚合高级别周期（5m, 1h, 1d）

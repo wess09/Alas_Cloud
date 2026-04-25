@@ -163,6 +163,7 @@ func banUser(targetID, reason string) error {
 		return nil
 	})
 	if err == nil {
+		invalidateBanCache()
 		invalidateTelemetryCache()
 		RequestStatsRefresh()
 	}
@@ -237,6 +238,7 @@ func UnbanUser(c *gin.Context) {
 	}
 
 	log.Printf("[UNBAN] Deleted %d rows from banned_users for device_id=%s", result.RowsAffected, req.TargetID)
+	invalidateBanCache()
 
 	if result.RowsAffected == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found in ban list"})

@@ -166,6 +166,18 @@ func (StaminaSnapshot) TableName() string {
 	return "stamina_snapshots"
 }
 
+// StaminaCurrent 保存每个设备最新体力，用于分钟聚合，避免每次从历史快照中 DISTINCT ON 全表取最新值。
+type StaminaCurrent struct {
+	DeviceID  string    `gorm:"primaryKey;column:device_id;size:191" json:"device_id"`
+	Stamina   float64   `gorm:"not null;column:stamina" json:"stamina"`
+	MinuteKey string    `gorm:"index;not null;column:minute_key;size:191" json:"minute_key"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime;column:updated_at" json:"updated_at"`
+}
+
+func (StaminaCurrent) TableName() string {
+	return "stamina_current"
+}
+
 // StaminaOHLCV 体力大盘 K 线聚合数据
 type StaminaOHLCV struct {
 	ID            uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`

@@ -14,6 +14,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type banCacheEntry struct {
+	banned    bool
+	expiresAt time.Time
+}
+
+var banCache sync.Map
+
+const banCacheTTL = 60 * time.Second
+
 // ---- SSE 广播器 ----
 
 type StatsBroadcaster struct {
@@ -67,12 +76,7 @@ func SubmitTelemetry(c *gin.Context) {
 	ip := c.ClientIP()
 
 	// 0. 检查是否被封禁
-	var banCount int64
-	database.DB.Model(&models.BannedUser{}).
-		Where("device_id = ? OR ip_address = ?", req.DeviceID, ip).
-		Count(&banCount)
-
-	if banCount > 0 {
+	if isBannedCached(req.DeviceID, ip) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "User is banned from the leaderboard."})
 		return
 	}
@@ -131,6 +135,37 @@ func SubmitTelemetry(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success", "message": "遥测数据已进入写入缓冲队列",
 		"device_id": req.DeviceID, "instance_id": req.InstanceID,
+	})
+}
+
+func isBannedCached(deviceID, ip string) bool {
+	key := deviceID + "|" + ip
+	now := time.Now()
+	if cached, ok := banCache.Load(key); ok {
+		entry := cached.(banCacheEntry)
+		if now.Before(entry.expiresAt) {
+			return entry.banned
+		}
+		banCache.Delete(key)
+	}
+
+	var banCount int64
+	database.DB.Model(&models.BannedUser{}).
+		Where("device_id = ? OR ip_address = ?", deviceID, ip).
+		Count(&banCount)
+
+	banned := banCount > 0
+	banCache.Store(key, banCacheEntry{
+		banned:    banned,
+		expiresAt: now.Add(banCacheTTL),
+	})
+	return banned
+}
+
+func invalidateBanCache() {
+	banCache.Range(func(key, _ any) bool {
+		banCache.Delete(key)
+		return true
 	})
 }
 

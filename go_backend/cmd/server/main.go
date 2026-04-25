@@ -69,6 +69,7 @@ func main() {
 
 	// Public API
 	handlers.InitTelemetryWriter()
+	handlers.InitStaminaWriter()
 	handlers.InitStatsWorker() // 启动后台统计预计算协程
 	r.GET("/api/get/announcement", handlers.GetLatestAnnouncement)
 	r.GET("/api/updata", handlers.GetAutoUpdateStatus)
@@ -155,6 +156,9 @@ func main() {
 	}
 	if err := handlers.ShutdownTelemetryWriter(ctx); err != nil {
 		log.Printf("Telemetry writer shutdown incomplete: %v", err)
+	}
+	if err := handlers.ShutdownStaminaWriter(ctx); err != nil {
+		log.Printf("Stamina writer shutdown incomplete: %v", err)
 	}
 
 	log.Println("Server exiting")
