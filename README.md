@@ -1,6 +1,6 @@
 # Alas Cloud Backend
 
-Alas Cloud Backend 是为 [AzurLaneAutoScript (Alas)](https://github.com/LCHRC/AzurLaneAutoScript) 开发的云端配套后端服务，使用 Go 语言编写，基于 Gin 框架，提供遥测数据收集、体力大盘、统计信息、公告管理等功能。
+Alas Cloud Backend 是为 [AzurLaneAutoScript (Alas)](https://github.com/LCHRC/AzurLaneAutoScript) 开发的云端配套后端服务，使用 Go 语言编写，基于 Gin 框架，提供遥测数据收集、统计信息、公告管理等功能。
 
 ## 技术栈
 
@@ -19,7 +19,6 @@ Alas Cloud Backend 是为 [AzurLaneAutoScript (Alas)](https://github.com/LCHRC/A
 - `internal/middleware/`: 中间件（如 JWT 鉴权）。
 - `internal/tasks/`: 后台定时任务（数据清理、统计聚合等）。
 - `internal/utils/`: 工具函数（JWT、哈希等）。
-- `dashboard/`: 前端展示页面（Vue/React 等）。
 
 ## 快速开始
 

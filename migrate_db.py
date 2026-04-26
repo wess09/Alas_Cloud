@@ -66,9 +66,7 @@ TABLES = [
     "telemetry_data",
     "azurstat_reports",
     "azurstat_item_drops",
-    "reports",
-    "stamina_snapshots",
-    "stamina_kline"
+    "reports"
 ]
 
 def get_mysql_conn():

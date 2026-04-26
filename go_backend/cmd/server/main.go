@@ -30,7 +30,6 @@ func main() {
 	// 启动后台任务
 	tasks.StartCleanupTask()
 	tasks.StartUsernameGeneratorTask()
-	tasks.StartStaminaAggregator()
 
 	// 设置 Gin 模式
 	if os.Getenv("GIN_MODE") == "release" {
@@ -69,7 +68,6 @@ func main() {
 
 	// Public API
 	handlers.InitTelemetryWriter()
-	handlers.InitStaminaWriter()
 	handlers.InitStatsWorker() // 启动后台统计预计算协程
 	r.GET("/api/get/announcement", handlers.GetLatestAnnouncement)
 	r.GET("/api/updata", handlers.GetAutoUpdateStatus)
@@ -88,12 +86,6 @@ func main() {
 	// Leaderboard API
 	r.GET("/api/leaderboard", handlers.GetLeaderboard)
 	r.POST("/api/user/profile", handlers.UpdateUserProfile)
-
-	// Stamina Dashboard API
-	r.POST("/api/stamina/report", handlers.ReportStamina)
-	r.GET("/api/stamina/kline", handlers.GetStaminaKline)
-	r.GET("/api/stamina/latest", handlers.GetStaminaLatest)
-	r.GET("/api/stamina/stream", handlers.StreamStaminaDashboard)
 
 	// Report & Ban API
 	r.POST("/api/report", handlers.ReportUser)
@@ -156,9 +148,6 @@ func main() {
 	}
 	if err := handlers.ShutdownTelemetryWriter(ctx); err != nil {
 		log.Printf("Telemetry writer shutdown incomplete: %v", err)
-	}
-	if err := handlers.ShutdownStaminaWriter(ctx); err != nil {
-		log.Printf("Stamina writer shutdown incomplete: %v", err)
 	}
 
 	log.Println("Server exiting")

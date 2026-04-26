@@ -17,7 +17,7 @@ func main() {
 	if envPath := os.Getenv("SQLITE_PATH"); envPath != "" {
 		sqlitePath = envPath
 	}
-	
+
 	mysqlDSN := os.Getenv("DATABASE_URL")
 	if mysqlDSN == "" {
 		log.Fatal("DATABASE_URL is not set")
@@ -49,8 +49,6 @@ func main() {
 		&models.UserProfile{},
 		&models.Report{},
 		&models.BannedUser{},
-		&models.StaminaSnapshot{},
-		&models.StaminaOHLCV{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to migrate MySQL schema: %v", err)
@@ -64,7 +62,7 @@ func main() {
 
 func migrateData(src *gorm.DB, dst *gorm.DB) {
 	// 列表顺序：先迁基础数据，再迁关联数据
-	
+
 	// UserProfiles
 	copyTable[models.UserProfile](src, dst, "UserProfiles")
 	// AdminUsers
@@ -83,10 +81,6 @@ func migrateData(src *gorm.DB, dst *gorm.DB) {
 	copyTable[models.AzurstatItemDrop](src, dst, "AzurstatItemDrops")
 	// Reports
 	copyTable[models.Report](src, dst, "Reports")
-	// StaminaSnapshots
-	copyTable[models.StaminaSnapshot](src, dst, "StaminaSnapshots")
-	// StaminaOHLCVs
-	copyTable[models.StaminaOHLCV](src, dst, "StaminaOHLCVs")
 }
 
 func copyTable[T any](src *gorm.DB, dst *gorm.DB, tableName string) {
@@ -97,7 +91,7 @@ func copyTable[T any](src *gorm.DB, dst *gorm.DB, tableName string) {
 		fmt.Printf("    ⚠️ Error reading %s: %v\n", tableName, result.Error)
 		return
 	}
-	
+
 	if len(items) == 0 {
 		fmt.Printf("    ℹ️ No data in %s, skipping.\n", tableName)
 		return

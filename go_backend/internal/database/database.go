@@ -66,17 +66,9 @@ func InitDB() error {
 		&models.UserProfile{},
 		&models.Report{},
 		&models.BannedUser{},
-		&models.StaminaSnapshot{},
-		&models.StaminaCurrent{},
-		&models.StaminaOHLCV{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
-	}
-	if os.Getenv("STAMINA_BACKFILL_ON_STARTUP") == "true" {
-		if err := backfillStaminaCurrent(); err != nil {
-			return fmt.Errorf("failed to backfill stamina current table: %w", err)
-		}
 	}
 
 	if os.Getenv("ENABLE_SQLITE_MIGRATION") == "true" {
@@ -85,23 +77,6 @@ func InitDB() error {
 	}
 
 	return nil
-}
-
-func backfillStaminaCurrent() error {
-	return DB.Exec(`
-		INSERT INTO stamina_current (device_id, stamina, minute_key, updated_at)
-		SELECT DISTINCT ON (device_id)
-			device_id,
-			stamina,
-			minute_key,
-			created_at
-		FROM stamina_snapshots
-		ORDER BY device_id, minute_key DESC, created_at DESC, id DESC
-		ON CONFLICT (device_id) DO UPDATE SET
-			stamina = EXCLUDED.stamina,
-			minute_key = EXCLUDED.minute_key,
-			updated_at = EXCLUDED.updated_at
-	`).Error
 }
 
 func migrateFromSQLite() {
@@ -141,8 +116,6 @@ func migrateFromSQLite() {
 	if shouldTruncate {
 		log.Println("⚠️ FORCE_MIGRATION_REDO is true, truncating PostgreSQL tables before migration...")
 		// PostgreSQL 的级联清空
-		DB.Exec("TRUNCATE TABLE stamina_kline CASCADE")
-		DB.Exec("TRUNCATE TABLE stamina_snapshots CASCADE")
 		DB.Exec("TRUNCATE TABLE telemetry_data CASCADE")
 		DB.Exec("TRUNCATE TABLE azurstat_reports CASCADE")
 		DB.Exec("TRUNCATE TABLE azurstat_item_drops CASCADE")
@@ -160,8 +133,6 @@ func migrateFromSQLite() {
 	copyTable[models.AzurstatReport](src, DB, "AzurstatReports")
 	copyTable[models.AzurstatItemDrop](src, DB, "AzurstatItemDrops")
 	copyTable[models.Report](src, DB, "Reports")
-	copyTable[models.StaminaSnapshot](src, DB, "StaminaSnapshots")
-	copyTable[models.StaminaOHLCV](src, DB, "StaminaOHLCVs")
 
 	// 记录完成标记
 	mark := models.SystemConfig{Key: "sqlite_migrated", Value: "true"}

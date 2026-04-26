@@ -150,60 +150,6 @@ type ChangePasswordRequest struct {
 	NewPassword string `json:"new_password" binding:"required,min=6"`
 }
 
-// ---- 体力大盘相关模型 ----
-
-// StaminaSnapshot 用户体力快照（每次上报原始数据）
-type StaminaSnapshot struct {
-	ID        uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	DeviceID  string    `gorm:"index;not null;column:device_id;size:191;index:idx_stamina_snapshot_device_minute_created,priority:1" json:"device_id"`
-	Stamina   float64   `gorm:"not null;column:stamina;index:idx_stamina_snapshot_minute_stamina,priority:2,sort:desc" json:"stamina"`
-	MinuteKey string    `gorm:"index;not null;column:minute_key;size:191;index:idx_stamina_snapshot_device_minute_created,priority:2,sort:desc;index:idx_stamina_snapshot_minute_stamina,priority:1" json:"minute_key"` // 格式: 2006-01-02T15:04
-	CreatedAt time.Time `gorm:"autoCreateTime;column:created_at;index:idx_stamina_snapshot_device_minute_created,priority:3,sort:desc" json:"created_at"`
-}
-
-// TableName 指定表名
-func (StaminaSnapshot) TableName() string {
-	return "stamina_snapshots"
-}
-
-// StaminaCurrent 保存每个设备最新体力，用于分钟聚合，避免每次从历史快照中 DISTINCT ON 全表取最新值。
-type StaminaCurrent struct {
-	DeviceID  string    `gorm:"primaryKey;column:device_id;size:191" json:"device_id"`
-	Stamina   float64   `gorm:"not null;column:stamina" json:"stamina"`
-	MinuteKey string    `gorm:"index;not null;column:minute_key;size:191" json:"minute_key"`
-	UpdatedAt time.Time `gorm:"autoUpdateTime;column:updated_at" json:"updated_at"`
-}
-
-func (StaminaCurrent) TableName() string {
-	return "stamina_current"
-}
-
-// StaminaOHLCV 体力大盘 K 线聚合数据
-type StaminaOHLCV struct {
-	ID            uint      `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	MinuteKey     string    `gorm:"uniqueIndex:uix_stamina_kline_key_period;not null;column:minute_key;size:191;index:idx_stamina_kline_period_minute,priority:2,sort:desc" json:"minute_key"` // 格式: 2006-01-02T15:04
-	Period        string    `gorm:"uniqueIndex:uix_stamina_kline_key_period;not null;column:period;size:191;index:idx_stamina_kline_period_minute,priority:1" json:"period"`                   // 1m, 5m, 1h, 1d
-	Open          float64   `gorm:"not null;column:open" json:"open"`
-	High          float64   `gorm:"not null;column:high" json:"high"`
-	Low           float64   `gorm:"not null;column:low" json:"low"`
-	Close         float64   `gorm:"not null;column:close" json:"close"`
-	Volume        float64   `gorm:"not null;column:volume" json:"volume"` // 大盘总量
-	ReportedCount int       `gorm:"not null;column:reported_count" json:"reported_count"`
-	FilledCount   int       `gorm:"not null;column:filled_count" json:"filled_count"`
-	CreatedAt     time.Time `gorm:"autoCreateTime;column:created_at" json:"created_at"`
-}
-
-// TableName 指定 StaminaOHLCV 的自定义表名（使用新表名绕过旧索引）
-func (StaminaOHLCV) TableName() string {
-	return "stamina_kline"
-}
-
-// StaminaReportRequest 体力上报请求
-type StaminaReportRequest struct {
-	DeviceID string  `json:"device_id" binding:"required"`
-	Stamina  float64 `json:"stamina" binding:"gte=0"`
-}
-
 // ---- AzurStat 掉落统计相关模型 ----
 
 // AzurstatReport 单次 AzurStat 原始上报
