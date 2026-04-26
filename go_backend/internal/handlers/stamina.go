@@ -173,10 +173,10 @@ func GetStaminaLatest(c *gin.Context) {
 	}
 
 	var topUsers []UserContribution
-	database.DB.Table("stamina_snapshots s").
+	database.DB.Table("stamina_current s").
 		Select("SUBSTRING(s.device_id, 1, 8) as device_id, COALESCE(u.username, '未知指挥官') as username, s.stamina").
 		Joins("LEFT JOIN user_profiles u ON u.device_id = s.device_id").
-		Where("s.minute_key = ?", latest.MinuteKey).
+		Where("s.minute_key <= ?", latest.MinuteKey).
 		Order("s.stamina DESC").
 		Limit(10).
 		Scan(&topUsers)
@@ -345,8 +345,10 @@ func AggregateMinute(minuteKey string) {
 		}),
 	}).Create(&ohlcv)
 
-	log.Printf("[STAMINA] Aggregated minute=%s open=%.0f close=%.0f reported=%d filled=%d",
-		minuteKey, openVal, totalStamina, reportedCount, filledCount)
+	if os.Getenv("VERBOSE_BUFFER_LOGS") == "true" {
+		log.Printf("[STAMINA] Aggregated minute=%s open=%.0f close=%.0f reported=%d filled=%d",
+			minuteKey, openVal, totalStamina, reportedCount, filledCount)
+	}
 }
 
 type staminaReport struct {
@@ -449,7 +451,9 @@ func (b *staminaBuffer) flush() {
 		b.requeue(batch)
 		return
 	}
-	log.Printf("[STAMINA] flushed %d buffered rows", len(batch))
+	if os.Getenv("VERBOSE_BUFFER_LOGS") == "true" {
+		log.Printf("[STAMINA] flushed %d buffered rows", len(batch))
+	}
 }
 
 func (b *staminaBuffer) drain() []staminaReport {
@@ -476,16 +480,22 @@ func (b *staminaBuffer) requeue(batch []staminaReport) {
 }
 
 func writeStaminaBatch(batch []staminaReport) error {
-	snapshots := make([]models.StaminaSnapshot, 0, len(batch))
 	currents := make([]models.StaminaCurrent, 0, len(batch))
 	now := time.Now()
+	keepSnapshots := os.Getenv("STAMINA_KEEP_SNAPSHOTS") == "true"
+	var snapshots []models.StaminaSnapshot
+	if keepSnapshots {
+		snapshots = make([]models.StaminaSnapshot, 0, len(batch))
+	}
 	for _, item := range batch {
-		snapshots = append(snapshots, models.StaminaSnapshot{
-			DeviceID:  item.DeviceID,
-			Stamina:   item.Stamina,
-			MinuteKey: item.MinuteKey,
-			CreatedAt: now,
-		})
+		if keepSnapshots {
+			snapshots = append(snapshots, models.StaminaSnapshot{
+				DeviceID:  item.DeviceID,
+				Stamina:   item.Stamina,
+				MinuteKey: item.MinuteKey,
+				CreatedAt: now,
+			})
+		}
 		currents = append(currents, models.StaminaCurrent{
 			DeviceID:  item.DeviceID,
 			Stamina:   item.Stamina,
@@ -495,8 +505,10 @@ func writeStaminaBatch(batch []staminaReport) error {
 	}
 
 	err := database.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.CreateInBatches(snapshots, 500).Error; err != nil {
-			return err
+		if keepSnapshots && len(snapshots) > 0 {
+			if err := tx.CreateInBatches(snapshots, 500).Error; err != nil {
+				return err
+			}
 		}
 
 		return tx.Clauses(clause.OnConflict{

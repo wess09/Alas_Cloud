@@ -73,13 +73,16 @@ func InitDB() error {
 	if err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
-	if err := backfillStaminaCurrent(); err != nil {
-		return fmt.Errorf("failed to backfill stamina current table: %w", err)
+	if os.Getenv("STAMINA_BACKFILL_ON_STARTUP") == "true" {
+		if err := backfillStaminaCurrent(); err != nil {
+			return fmt.Errorf("failed to backfill stamina current table: %w", err)
+		}
 	}
 
-	// 3. 执行一次性数据迁移 (SQLite -> MySQL)
-	log.Println("🔍 Checking for SQLite to MySQL migration...")
-	migrateFromSQLite()
+	if os.Getenv("ENABLE_SQLITE_MIGRATION") == "true" {
+		log.Println("Checking for SQLite migration...")
+		migrateFromSQLite()
+	}
 
 	return nil
 }

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
 	"gorm.io/gorm"
@@ -14,17 +16,20 @@ import (
 
 // StartUsernameGeneratorTask 启动后台用户名生成任务
 func StartUsernameGeneratorTask() {
-	// 启动时先运行一次 (可选)
-	// go processNextUser()
+	if os.Getenv("DISABLE_USERNAME_GENERATOR") == "true" {
+		log.Println("[USERNAME] generator disabled by DISABLE_USERNAME_GENERATOR=true")
+		return
+	}
 
-	// 限制速率: ip-api.com 免费版限制 45 req/min -> 1.33s/req
-	// 我们设置为 3 秒一次，非常安全
-	ticker := time.NewTicker(3 * time.Second)
+	interval := loadUsernameGeneratorInterval()
+	ticker := time.NewTicker(interval)
 	go func() {
+		defer ticker.Stop()
 		for range ticker.C {
 			processNextUser()
 		}
 	}()
+	log.Printf("[USERNAME] generator started interval=%s", interval)
 }
 
 type ipApiResponse struct {
@@ -124,4 +129,19 @@ func saveProfile(deviceID, username string) {
 	} else {
 		log.Printf("✨ Auto-generated username for %s: %s", deviceID, username)
 	}
+}
+
+func loadUsernameGeneratorInterval() time.Duration {
+	raw := os.Getenv("USERNAME_GENERATOR_INTERVAL_SECONDS")
+	if raw == "" {
+		return 5 * time.Minute
+	}
+	seconds, err := strconv.Atoi(raw)
+	if err != nil || seconds <= 0 {
+		return 5 * time.Minute
+	}
+	if seconds < 30 {
+		seconds = 30
+	}
+	return time.Duration(seconds) * time.Second
 }

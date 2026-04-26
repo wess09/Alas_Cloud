@@ -115,7 +115,9 @@ func (b *telemetryBuffer) flush() {
 		return
 	}
 
-	log.Printf("[TELEMETRY] flushed %d buffered rows", len(batch))
+	if os.Getenv("VERBOSE_BUFFER_LOGS") == "true" {
+		log.Printf("[TELEMETRY] flushed %d buffered rows", len(batch))
+	}
 }
 
 func (b *telemetryBuffer) drain() []models.TelemetryData {
