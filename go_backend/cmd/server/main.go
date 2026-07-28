@@ -71,6 +71,7 @@ func main() {
 	handlers.InitStatsWorker() // 启动后台统计预计算协程
 	r.GET("/api/get/announcement", handlers.GetLatestAnnouncement)
 	r.GET("/api/updata", handlers.GetAutoUpdateStatus)
+	r.GET("/api/force_update", handlers.GetForceUpdateStatus)
 	r.POST("/api/telemetry", handlers.SubmitTelemetry)
 	r.POST("/api/azurstat", handlers.SubmitAzurstat)
 	r.GET("/api/azurstat/stats", handlers.GetAzurstatStats)
@@ -107,6 +108,8 @@ func main() {
 		// System Config
 		admin.GET("/config/auto_update", handlers.AdminGetAutoUpdateStatus)
 		admin.PATCH("/config/auto_update", handlers.AdminToggleAutoUpdate)
+		admin.GET("/config/force_update", handlers.AdminGetForceUpdateStatus)
+		admin.PATCH("/config/force_update", handlers.AdminToggleForceUpdate)
 
 		// User Management
 		admin.POST("/ban", handlers.DirectBanUser)

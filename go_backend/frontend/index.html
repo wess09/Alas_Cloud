@@ -750,6 +750,17 @@
                     <span class="slider round"></span>
                 </label>
             </div>
+            <div class="form-group"
+                style="display: flex; align-items: center; justify-content: space-between; margin: 1rem 0 0; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                <div>
+                    <label class="form-label" style="margin-bottom: 0;">客户端强制更新</label>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">开启后客户端每秒检查一次更新，检测到新版本立即更新</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="forceUpdateToggle" onchange="toggleForceUpdate(this.checked)">
+                    <span class="slider round"></span>
+                </label>
+            </div>
         </div>
 
         <!-- Create Card -->
@@ -1006,8 +1017,12 @@
         // System Config Functions
         async function loadSystemConfig() {
             try {
-                const data = await apiRequest('/api/admin/config/auto_update');
-                document.getElementById('autoUpdateToggle').checked = data.auto_update;
+                const [autoUpdate, forceUpdate] = await Promise.all([
+                    apiRequest('/api/admin/config/auto_update'),
+                    apiRequest('/api/admin/config/force_update')
+                ]);
+                document.getElementById('autoUpdateToggle').checked = autoUpdate.auto_update;
+                document.getElementById('forceUpdateToggle').checked = forceUpdate.force_update;
             } catch (error) {
                 console.error('[ERROR] 加载系统配置失败:', error);
                 showToast('加载系统配置失败', 'error');
@@ -1020,6 +1035,16 @@
                 showToast(`自动更新已${isActive ? '开启' : '关闭'}`, 'success');
             } catch (error) {
                 document.getElementById('autoUpdateToggle').checked = !isActive;
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function toggleForceUpdate(isActive) {
+            try {
+                await apiRequest(`/api/admin/config/force_update?is_active=${isActive}`, { method: 'PATCH' });
+                showToast(`强制更新已${isActive ? '开启' : '关闭'}`, 'success');
+            } catch (error) {
+                document.getElementById('forceUpdateToggle').checked = !isActive;
                 showToast(error.message, 'error');
             }
         }

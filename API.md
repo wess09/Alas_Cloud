@@ -48,6 +48,7 @@
 ### 4. 系统与公告
 - **获取公告**: `GET /api/get/announcement`
 - **更新检查**: `GET /api/updata` (返回自动更新开关状态)
+- **强制更新开关**: `GET /api/force_update` (返回强制更新开关状态)
 - **Bug 报告**: `POST /api/post/bug`
 
 ---
@@ -70,6 +71,10 @@
 ### 3. 系统配置
 - **获取更新状态**: `GET /api/admin/config/auto_update`
 - **修改更新状态**: `PATCH /api/admin/config/auto_update?is_active=true`
+- **获取强制更新状态**: `GET /api/admin/config/force_update`
+- **修改强制更新状态**: `PATCH /api/admin/config/force_update?is_active=true`
+
+强制更新开启后，客户端会以 1 秒间隔检查更新；检测到新版本时立即进入更新流程。关闭后恢复正常检查节奏，已有更新仍由客户端界面提示并等待手动或定时更新。
 
 ---
 
